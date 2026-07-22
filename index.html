@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover"
+  >
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#4a0718">
+
+  <title>Memoria de la Costa Peruana</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Inter:wght@500;600;700&display=swap"
+    rel="stylesheet"
+  >
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+  <div id="app">
+    <!-- MENÚ: por pedido, solo muestra PLAY -->
+    <section id="menu-screen" class="screen is-active" aria-label="Menú principal">
+      <button id="start-btn" class="play-button" type="button" aria-label="Empezar juego">
+        PLAY
+      </button>
+    </section>
+
+    <!-- JUEGO -->
+    <section id="game-screen" class="screen">
+      <header class="game-header">
+        <button id="menu-btn" class="btn btn-ghost" type="button" aria-label="Volver al menú">
+          <span class="icon" aria-hidden="true">←</span>
+          <span class="btn-label">Menú</span>
+        </button>
+
+        <div class="game-stats" aria-live="polite">
+          <div class="stat">
+            <span class="stat-value" id="pairs-counter">0/8</span>
+            <span class="stat-label">Pares</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value" id="moves-counter">0</span>
+            <span class="stat-label">Movimientos</span>
+          </div>
+        </div>
+
+        <button id="restart-btn" class="btn btn-ghost" type="button" aria-label="Reiniciar partida">
+          <span class="icon" aria-hidden="true">↻</span>
+          <span class="btn-label">Reiniciar</span>
+        </button>
+      </header>
+
+      <main id="board" class="board" role="grid" aria-label="Tablero de memoria de 16 cartas"></main>
+    </section>
+
+    <!-- VICTORIA -->
+    <div id="win-overlay" class="overlay" hidden>
+      <div class="overlay-card">
+        <p class="overlay-eyebrow">¡Completado!</p>
+        <h2 class="overlay-title">Encontraste todos los pares</h2>
+        <p class="overlay-summary" id="win-summary"></p>
+
+        <div class="overlay-actions">
+          <button id="win-restart-btn" class="btn btn-primary" type="button">Jugar de nuevo</button>
+          <button id="win-menu-btn" class="btn btn-ghost" type="button">Volver al menú</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/script.js"></script>
+</body>
+</html>
