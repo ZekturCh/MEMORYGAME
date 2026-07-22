@@ -1,11 +1,15 @@
-/* ========================================================================== 
+/* ==========================================================================
    MEMORIA DE LA COSTA PERUANA
-   - Siempre usa las 8 imágenes disponibles.
-   - Cada imagen aparece dos veces: 16 cartas en total.
+   - 8 imágenes diferentes.
+   - Cada imagen aparece dos veces.
+   - 16 cartas en total.
+   - +200 puntos por acierto.
+   - -10 puntos por intento incorrecto.
    ========================================================================== */
 
 const CONFIG = {
   totalPairs: 8,
+
   cardBackImage: "assets/back.webp",
   cardImagesFolder: "assets/cards/",
 
@@ -20,59 +24,98 @@ const CONFIG = {
     { file: "card-08.webp", name: "Tillandsia" },
   ],
 
-  // Las imágenes miden 1000 x 1450 px.
+  // Medidas originales: 1000 x 1450 px.
   cardAspectRatio: 1000 / 1450,
+
   boardGap: 12,
   maxCardWidth: 230,
   mismatchDelay: 750,
+
+  pointsPerMatch: 200,
+  penaltyPerMiss: 10,
 };
 
 const state = {
   deck: [],
+
   firstCard: null,
   secondCard: null,
+
   boardLocked: false,
+
   moves: 0,
   matchedPairs: 0,
+  points: 0,
 };
 
 const dom = {
   menuScreen: document.getElementById("menu-screen"),
   gameScreen: document.getElementById("game-screen"),
+
   startBtn: document.getElementById("start-btn"),
   menuBtn: document.getElementById("menu-btn"),
   restartBtn: document.getElementById("restart-btn"),
+
   board: document.getElementById("board"),
+
   movesCounter: document.getElementById("moves-counter"),
   pairsCounter: document.getElementById("pairs-counter"),
+  pointsCounter: document.getElementById("points-counter"),
+
   winOverlay: document.getElementById("win-overlay"),
   winSummary: document.getElementById("win-summary"),
   winRestartBtn: document.getElementById("win-restart-btn"),
   winMenuBtn: document.getElementById("win-menu-btn"),
 };
 
+/* ==========================================================================
+   UTILIDADES
+   ========================================================================== */
+
 function shuffle(array) {
-  const result = array.slice();
+  const result = [...array];
 
   for (let i = result.length - 1; i > 0; i -= 1) {
     const randomIndex = Math.floor(Math.random() * (i + 1));
-    [result[i], result[randomIndex]] = [result[randomIndex], result[i]];
+
+    [result[i], result[randomIndex]] = [
+      result[randomIndex],
+      result[i],
+    ];
   }
 
   return result;
 }
 
-function fitGrid(total, containerWidth, containerHeight, gap, ratio, maxItemWidth = Infinity) {
+function fitGrid(
+  total,
+  containerWidth,
+  containerHeight,
+  gap,
+  ratio,
+  maxItemWidth = Infinity
+) {
   let bestLayout = null;
 
   for (let columns = 1; columns <= total; columns += 1) {
     const rows = Math.ceil(total / columns);
-    const widthPerItem = (containerWidth - gap * (columns - 1)) / columns;
-    const heightPerItem = (containerHeight - gap * (rows - 1)) / rows;
 
-    if (widthPerItem <= 0 || heightPerItem <= 0) continue;
+    const widthPerItem =
+      (containerWidth - gap * (columns - 1)) / columns;
 
-    let itemWidth = Math.min(widthPerItem, heightPerItem * ratio, maxItemWidth);
+    const heightPerItem =
+      (containerHeight - gap * (rows - 1)) / rows;
+
+    if (widthPerItem <= 0 || heightPerItem <= 0) {
+      continue;
+    }
+
+    const itemWidth = Math.min(
+      widthPerItem,
+      heightPerItem * ratio,
+      maxItemWidth
+    );
+
     const itemHeight = itemWidth / ratio;
 
     if (!bestLayout || itemWidth > bestLayout.itemWidth) {
@@ -88,28 +131,47 @@ function fitGrid(total, containerWidth, containerHeight, gap, ratio, maxItemWidt
   return bestLayout;
 }
 
+/* ==========================================================================
+   CREACIÓN DEL MAZO
+   ========================================================================== */
+
 function buildDeck() {
   const duplicatedCards = CONFIG.cards.flatMap((cardData, index) => {
     const pairId = `pair-${index}`;
 
     return [
-      { ...cardData, uid: `${pairId}-a`, pairId },
-      { ...cardData, uid: `${pairId}-b`, pairId },
+      {
+        ...cardData,
+        uid: `${pairId}-a`,
+        pairId,
+      },
+      {
+        ...cardData,
+        uid: `${pairId}-b`,
+        pairId,
+      },
     ];
   });
 
   return shuffle(duplicatedCards);
 }
 
+/* ==========================================================================
+   TABLERO
+   ========================================================================== */
+
 function renderBoard(deck) {
   dom.board.innerHTML = "";
 
   deck.forEach((cardData) => {
     const card = document.createElement("button");
+
     card.type = "button";
     card.className = "card";
+
     card.dataset.uid = cardData.uid;
     card.dataset.pairId = cardData.pairId;
+
     card.setAttribute("role", "gridcell");
     card.setAttribute("aria-label", "Carta boca abajo");
 
@@ -118,15 +180,31 @@ function renderBoard(deck) {
 
     const back = document.createElement("span");
     back.className = "card-face card-back";
-    back.innerHTML = `<img src="${CONFIG.cardBackImage}" alt="" draggable="false">`;
+
+    const backImage = document.createElement("img");
+    backImage.src = CONFIG.cardBackImage;
+    backImage.alt = "";
+    backImage.draggable = false;
+
+    back.appendChild(backImage);
 
     const front = document.createElement("span");
     front.className = "card-face card-front";
-    front.innerHTML = `<img src="${CONFIG.cardImagesFolder}${cardData.file}" alt="${cardData.name}" draggable="false">`;
+
+    const frontImage = document.createElement("img");
+    frontImage.src = `${CONFIG.cardImagesFolder}${cardData.file}`;
+    frontImage.alt = cardData.name;
+    frontImage.draggable = false;
+
+    front.appendChild(frontImage);
 
     inner.append(back, front);
     card.appendChild(inner);
-    card.addEventListener("click", () => onCardClick(card));
+
+    card.addEventListener("click", () => {
+      onCardClick(card);
+    });
+
     dom.board.appendChild(card);
   });
 
@@ -137,11 +215,23 @@ function applyBoardLayout(totalCards) {
   const rect = dom.board.getBoundingClientRect();
   const styles = window.getComputedStyle(dom.board);
 
-  const horizontalPadding = parseFloat(styles.paddingLeft) + parseFloat(styles.paddingRight);
-  const verticalPadding = parseFloat(styles.paddingTop) + parseFloat(styles.paddingBottom);
+  const horizontalPadding =
+    parseFloat(styles.paddingLeft) +
+    parseFloat(styles.paddingRight);
 
-  const availableWidth = Math.max(0, rect.width - horizontalPadding);
-  const availableHeight = Math.max(0, rect.height - verticalPadding);
+  const verticalPadding =
+    parseFloat(styles.paddingTop) +
+    parseFloat(styles.paddingBottom);
+
+  const availableWidth = Math.max(
+    0,
+    rect.width - horizontalPadding
+  );
+
+  const availableHeight = Math.max(
+    0,
+    rect.height - verticalPadding
+  );
 
   const layout = fitGrid(
     totalCards,
@@ -152,29 +242,54 @@ function applyBoardLayout(totalCards) {
     CONFIG.maxCardWidth
   );
 
-  if (!layout) return;
+  if (!layout) {
+    return;
+  }
 
   dom.board.style.setProperty("--cols", layout.columns);
   dom.board.style.setProperty("--rows", layout.rows);
-  dom.board.style.setProperty("--card-w", `${layout.itemWidth}px`);
-  dom.board.style.setProperty("--card-h", `${layout.itemHeight}px`);
+  dom.board.style.setProperty(
+    "--card-w",
+    `${layout.itemWidth}px`
+  );
+  dom.board.style.setProperty(
+    "--card-h",
+    `${layout.itemHeight}px`
+  );
 }
 
+/* ==========================================================================
+   INTERACCIÓN CON LAS CARTAS
+   ========================================================================== */
+
 function onCardClick(cardElement) {
-  if (state.boardLocked) return;
-  if (cardElement.classList.contains("is-flipped")) return;
-  if (cardElement.classList.contains("is-matched")) return;
+  if (state.boardLocked) {
+    return;
+  }
+
+  if (cardElement.classList.contains("is-flipped")) {
+    return;
+  }
+
+  if (cardElement.classList.contains("is-matched")) {
+    return;
+  }
 
   flipCard(cardElement);
 
+  // Primera carta elegida.
   if (!state.firstCard) {
     state.firstCard = cardElement;
     return;
   }
 
+  // Segunda carta elegida.
   state.secondCard = cardElement;
   state.boardLocked = true;
+
+  // Un movimiento equivale a levantar dos cartas.
   state.moves += 1;
+
   updateStats();
   checkForMatch();
 }
@@ -189,25 +304,43 @@ function unflipCard(cardElement) {
   cardElement.setAttribute("aria-label", "Carta boca abajo");
 }
 
+/* ==========================================================================
+   COMPROBACIÓN DE PAREJAS
+   ========================================================================== */
+
 function checkForMatch() {
-  const isMatch = state.firstCard.dataset.pairId === state.secondCard.dataset.pairId;
+  if (!state.firstCard || !state.secondCard) {
+    return;
+  }
+
+  const firstPairId = state.firstCard.dataset.pairId;
+  const secondPairId = state.secondCard.dataset.pairId;
+
+  const isMatch = firstPairId === secondPairId;
 
   if (isMatch) {
     handleMatch();
     return;
   }
 
-  window.setTimeout(handleMismatch, CONFIG.mismatchDelay);
+  handleIncorrectAttempt();
 }
 
 function handleMatch() {
+  rewardMatch();
+
   [state.firstCard, state.secondCard].forEach((cardElement) => {
     cardElement.classList.add("is-matched");
     cardElement.disabled = true;
-    cardElement.setAttribute("aria-label", "Carta emparejada");
+
+    cardElement.setAttribute(
+      "aria-label",
+      "Carta emparejada"
+    );
   });
 
   state.matchedPairs += 1;
+
   updateStats();
   resetSelection();
 
@@ -216,10 +349,21 @@ function handleMatch() {
   }
 }
 
-function handleMismatch() {
-  if (state.firstCard) unflipCard(state.firstCard);
-  if (state.secondCard) unflipCard(state.secondCard);
-  resetSelection();
+function handleIncorrectAttempt() {
+  penalizeMiss();
+  updateStats();
+
+  window.setTimeout(() => {
+    if (state.firstCard) {
+      unflipCard(state.firstCard);
+    }
+
+    if (state.secondCard) {
+      unflipCard(state.secondCard);
+    }
+
+    resetSelection();
+  }, CONFIG.mismatchDelay);
 }
 
 function resetSelection() {
@@ -228,19 +372,58 @@ function resetSelection() {
   state.boardLocked = false;
 }
 
-function updateStats() {
-  dom.movesCounter.textContent = String(state.moves);
-  dom.pairsCounter.textContent = `${state.matchedPairs}/${CONFIG.totalPairs}`;
+/* ==========================================================================
+   SISTEMA DE PUNTOS
+   ========================================================================== */
+
+function rewardMatch() {
+  state.points += CONFIG.pointsPerMatch;
 }
 
+function penalizeMiss() {
+  state.points = Math.max(
+    0,
+    state.points - CONFIG.penaltyPerMiss
+  );
+}
+
+function resetPoints() {
+  state.points = 0;
+}
+
+/* ==========================================================================
+   CONTADORES
+   ========================================================================== */
+
+function updateStats() {
+  dom.movesCounter.textContent = String(state.moves);
+
+  dom.pairsCounter.textContent =
+    `${state.matchedPairs}/${CONFIG.totalPairs}`;
+
+  if (dom.pointsCounter) {
+    dom.pointsCounter.textContent = String(state.points);
+  }
+}
+
+/* ==========================================================================
+   VICTORIA
+   ========================================================================== */
+
 function showWin() {
-  dom.winSummary.textContent = `Lo lograste en ${state.moves} movimientos.`;
+  dom.winSummary.textContent =
+    `Lo lograste en ${state.moves} movimientos y obtuviste ${state.points} puntos.`;
+
   dom.winOverlay.hidden = false;
 }
 
 function hideWin() {
   dom.winOverlay.hidden = true;
 }
+
+/* ==========================================================================
+   PANTALLAS
+   ========================================================================== */
 
 function showScreen(screenElement) {
   [dom.menuScreen, dom.gameScreen].forEach((screen) => {
@@ -250,18 +433,35 @@ function showScreen(screenElement) {
   screenElement.classList.add("is-active");
 }
 
-function startGame() {
-  state.deck = buildDeck();
+/* ==========================================================================
+   INICIO Y REINICIO
+   ========================================================================== */
+
+function resetGameState() {
+  state.deck = [];
+  state.firstCard = null;
+  state.secondCard = null;
+
+  state.boardLocked = false;
+
   state.moves = 0;
   state.matchedPairs = 0;
-  state.boardLocked = false;
-  resetSelection();
+
+  resetPoints();
+}
+
+function startGame() {
+  resetGameState();
+
+  state.deck = buildDeck();
 
   updateStats();
   hideWin();
   showScreen(dom.gameScreen);
 
-  requestAnimationFrame(() => renderBoard(state.deck));
+  requestAnimationFrame(() => {
+    renderBoard(state.deck);
+  });
 }
 
 function restartCurrentGame() {
@@ -270,13 +470,24 @@ function restartCurrentGame() {
 
 function goToMenu() {
   hideWin();
+
+  state.boardLocked = true;
+  state.firstCard = null;
+  state.secondCard = null;
+
   showScreen(dom.menuScreen);
 }
+
+/* ==========================================================================
+   PRECARGA DE IMÁGENES
+   ========================================================================== */
 
 function preloadImages() {
   const imagePaths = [
     CONFIG.cardBackImage,
-    ...CONFIG.cards.map((card) => `${CONFIG.cardImagesFolder}${card.file}`),
+    ...CONFIG.cards.map(
+      (card) => `${CONFIG.cardImagesFolder}${card.file}`
+    ),
   ];
 
   imagePaths.forEach((source) => {
@@ -285,25 +496,69 @@ function preloadImages() {
   });
 }
 
+/* ==========================================================================
+   EVENTOS
+   ========================================================================== */
+
 dom.startBtn.addEventListener("click", startGame);
 dom.restartBtn.addEventListener("click", restartCurrentGame);
 dom.menuBtn.addEventListener("click", goToMenu);
-dom.winRestartBtn.addEventListener("click", restartCurrentGame);
-dom.winMenuBtn.addEventListener("click", goToMenu);
 
-let resizeTimeout;
+dom.winRestartBtn.addEventListener(
+  "click",
+  restartCurrentGame
+);
+
+dom.winMenuBtn.addEventListener(
+  "click",
+  goToMenu
+);
+
+/* ==========================================================================
+   RESPONSIVE
+   ========================================================================== */
+
+let resizeTimeout = null;
+
 function handleViewportChange() {
-  clearTimeout(resizeTimeout);
+  window.clearTimeout(resizeTimeout);
 
   resizeTimeout = window.setTimeout(() => {
-    if (dom.gameScreen.classList.contains("is-active") && state.deck.length) {
+    const gameIsActive =
+      dom.gameScreen.classList.contains("is-active");
+
+    if (gameIsActive && state.deck.length > 0) {
       applyBoardLayout(state.deck.length);
     }
   }, 120);
 }
 
 window.addEventListener("resize", handleViewportChange);
-window.addEventListener("orientationchange", handleViewportChange);
+window.addEventListener(
+  "orientationchange",
+  handleViewportChange
+);
+
+/* ==========================================================================
+   PWA / FUNCIONAMIENTO SIN INTERNET
+   ========================================================================== */
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", async () => {
+    try {
+      await navigator.serviceWorker.register("./sw.js");
+    } catch (error) {
+      console.error(
+        "No se pudo registrar el Service Worker:",
+        error
+      );
+    }
+  });
+}
+
+/* ==========================================================================
+   INICIALIZACIÓN
+   ========================================================================== */
 
 preloadImages();
 updateStats();
