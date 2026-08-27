@@ -45,7 +45,7 @@
   button{ font-family:inherit; -webkit-user-select:none; user-select:none; }
 
   .app-shell{
-    position:relative; max-width:560px; margin:0 auto; height:100vh; height:100dvh;
+    position:relative; width:100%; max-width:1080px; margin:0 auto; height:100vh; height:100dvh;
     padding-top:env(safe-area-inset-top); padding-bottom:env(safe-area-inset-bottom);
   }
 
@@ -56,24 +56,30 @@
   .screen.hidden{ opacity:0; transform:translateY(14px); pointer-events:none; }
 
   /* ============ PANTALLA DE INICIO ============ */
-  #start-screen{ justify-content:center; gap:clamp(22px,4.5vh,44px); padding:clamp(18px,5vh,40px) clamp(18px,6vw,32px); text-align:center; }
+  #start-screen{
+    justify-content:center; gap:clamp(18px,3.2vh,38px);
+    padding:clamp(22px,4vh,56px) clamp(18px,5vw,56px); text-align:center;
+  }
 
-  .start-top{ display:flex; flex-direction:column; align-items:center; gap:clamp(10px,2.4vh,18px); width:100%; }
+  .start-top{ display:flex; flex-direction:column; align-items:center; gap:clamp(14px,2.8vh,28px); width:100%; }
 
   .logo-wrap{ width:100%; display:flex; justify-content:center; }
-  .logo-wrap img{ max-width:min(58vw,240px); height:auto; display:block; }
-  .logo-fallback{
-    display:none; align-items:center; gap:10px; padding:10px 18px; border:2px dashed rgba(255,255,255,.35);
-    border-radius:14px; font-family:var(--font-display); letter-spacing:1px; font-size:clamp(1.1rem,4.5vw,1.5rem);
-  }
-  .logo-fallback .lf-mark{ color:var(--c-red); font-size:1.3em; }
-
-  .kicker{
-    margin:0; font-weight:700; font-size:clamp(1.05rem,4.6vw,1.45rem); line-height:1.3;
-    color:#fff; opacity:.95; max-width:22ch;
+  .logo-wrap img{
+    width:min(100%,920px); max-height:clamp(170px,38vh,540px);
+    aspect-ratio:16/9; object-fit:contain; display:block;
   }
 
-  .start-mid{ display:flex; flex-direction:column; align-items:center; gap:clamp(14px,3vh,22px); }
+  .start-copy{ display:flex; flex-direction:column; align-items:center; gap:clamp(8px,1.4vh,16px); }
+  .start-title{
+    margin:0; font-family:var(--font-display); font-weight:400; font-size:clamp(2.6rem,8vw,5.4rem);
+    line-height:.95; letter-spacing:0; text-transform:uppercase; text-shadow:0 0 24px rgba(255,45,32,.38);
+  }
+  .start-subtitle{
+    margin:0; font-weight:700; font-size:clamp(1.12rem,4.2vw,2rem); line-height:1.25;
+    color:#fff; opacity:.95; max-width:26ch;
+  }
+
+  .start-mid{ display:flex; flex-direction:column; align-items:center; gap:clamp(14px,2.6vh,28px); }
 
   .btn-iniciar{
     position:relative; border:3px solid var(--c-neon); cursor:pointer;
@@ -92,15 +98,7 @@
   }
 
   .motto-wrap{ display:flex; justify-content:center; width:100%; }
-  .motto-wrap img{ max-width:min(72vw,320px); height:auto; display:block; }
-  .motto-fallback{
-    display:none; flex-direction:column; align-items:center; line-height:.85;
-    font-family:var(--font-display);
-  }
-  .mf-73{ display:flex; }
-  .mf-7{ color:var(--c-electric-2); font-size:clamp(3.6rem,16vw,6.2rem); }
-  .mf-3{ color:var(--c-red); font-size:clamp(3.6rem,16vw,6.2rem); margin-left:-.12em; }
-  .mf-anios{ font-size:clamp(.85rem,3vw,1.1rem); letter-spacing:4px; color:#fff; opacity:.85; margin-top:2px; }
+  .motto-wrap img{ width:min(58vw,360px); max-height:clamp(74px,13vh,170px); height:auto; object-fit:contain; display:block; }
 
   .start-bottom{ width:100%; display:flex; justify-content:center; }
 
@@ -119,16 +117,19 @@
   /* ============ PANTALLA DE QUIZ ============ */
   #quiz-screen{ justify-content:flex-start; padding:clamp(14px,3vh,26px) clamp(16px,5vw,28px); gap:clamp(10px,2vh,18px); }
 
-  .quiz-top{ width:100%; display:flex; align-items:center; justify-content:space-between; gap:10px; }
-  .chip{
-    font-weight:700; font-size:.78rem; letter-spacing:.5px; padding:6px 14px; border-radius:999px;
-    background:var(--c-electric); color:#fff; white-space:nowrap;
+  .quiz-top{
+    width:100%; display:grid; grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
+    align-items:center; gap:10px;
   }
-  .chip-alafarpe{ background:linear-gradient(135deg,#2f6fe4,#1c3f7a); }
-  .chip-fihu{ background:linear-gradient(135deg,#1fb08a,#0d6b53); }
-  .chip-salud{ background:linear-gradient(135deg,#e8231c,#8f130d); }
-  .q-counter{ font-weight:700; font-size:.9rem; opacity:.85; }
-  .live-score{ position:relative; font-weight:900; font-size:1rem; background:rgba(255,255,255,.1); padding:6px 12px; border-radius:999px; }
+  .finish-btn{
+    justify-self:start; min-height:44px; padding:8px 16px; border-radius:999px;
+    border:1px solid rgba(255,255,255,.26); background:rgba(255,255,255,.1);
+    color:#fff; font-weight:900; font-size:.9rem; cursor:pointer;
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);
+  }
+  .finish-btn:active{ transform:scale(.97); }
+  .q-counter{ justify-self:center; font-weight:700; font-size:.9rem; opacity:.85; }
+  .live-score{ justify-self:end; position:relative; font-weight:900; font-size:1rem; background:rgba(255,255,255,.1); padding:6px 12px; border-radius:999px; }
   .score-pop{
     position:absolute; right:6px; top:-6px; font-weight:900; color:var(--c-correct); font-size:.95rem;
     animation:floatUp .9s ease-out forwards; pointer-events:none;
@@ -175,6 +176,14 @@
   .option.dim{ opacity:.35; filter:grayscale(.5); }
   @keyframes shakeX{
     0%,100%{ transform:translateX(0); } 25%{ transform:translateX(-6px); } 75%{ transform:translateX(6px); }
+  }
+
+  .quiz-brand-bottom{
+    width:100%; min-height:clamp(76px,12vh,190px); margin-top:auto; padding-top:clamp(8px,2vh,18px);
+    display:flex; align-items:flex-end; justify-content:center;
+  }
+  .quiz-brand-bottom img{
+    width:min(58vw,420px); max-height:clamp(72px,12vh,190px); height:auto; object-fit:contain; display:block;
   }
 
   /* ============ PANTALLA FINAL (overlay flotante) ============ */
@@ -234,26 +243,20 @@
   <section id="start-screen" class="screen">
     <div class="start-top">
       <div class="logo-wrap">
-        <!-- Reemplazar logotipo.webp por el archivo real del logo ALAFARPE (misma carpeta que este HTML) -->
-        <img id="logo-img" src="logotipo.webp" alt="ALAFARPE"
-             onerror="this.style.display='none'; document.getElementById('logo-fallback').style.display='flex';">
-        <div id="logo-fallback" class="logo-fallback">
-          <span class="lf-mark">✚</span><span class="lf-text">ALAFARPE</span>
-        </div>
+        <!-- Guarda el logo 1920x1080 como logo-menu.png junto a este HTML, o cambia este src. -->
+        <img id="logo-img" src="logo-menu.png" alt="Logo RETO SALUD" onerror="this.style.display='none';">
       </div>
-      <p class="kicker">¿Cuánto sabes de ALAFARPE, FIHU y el sector Salud?</p>
+      <div class="start-copy">
+        <h1 class="start-title">RETO SALUD</h1>
+        <p class="start-subtitle">¿Cuánto sabes de salud y nuestra industria?</p>
+      </div>
     </div>
 
     <div class="start-mid">
       <button id="btn-iniciar" class="btn-iniciar">Iniciar</button>
       <div class="motto-wrap">
-        <!-- Reemplazar motto.png por la imagen real de "73 años" (misma carpeta que este HTML) -->
-        <img id="motto-img" src="motto.png" alt="73 años"
-             onerror="this.style.display='none'; document.getElementById('motto-fallback').style.display='flex';">
-        <div id="motto-fallback" class="motto-fallback">
-          <span class="mf-73"><span class="mf-7">7</span><span class="mf-3">3</span></span>
-          <span class="mf-anios">AÑOS</span>
-        </div>
+        <!-- Guarda el logo de 73 años como logo-73-anios.png junto a este HTML, o cambia este src. -->
+        <img id="motto-img" src="logo-73-anios.png" alt="73 años" onerror="this.style.display='none';">
       </div>
     </div>
 
@@ -265,7 +268,7 @@
   <!-- ============ PANTALLA DE QUIZ ============ -->
   <section id="quiz-screen" class="screen hidden">
     <div class="quiz-top">
-      <span id="cat-chip" class="chip">ALAFARPE</span>
+      <button id="btn-terminar" class="finish-btn" type="button">Terminar</button>
       <span id="q-counter" class="q-counter">1 / 10</span>
       <span id="live-score" class="live-score">⭐ 0</span>
     </div>
@@ -274,6 +277,9 @@
       <h2 id="question-text" class="question-text"></h2>
     </div>
     <div id="options" class="options"></div>
+    <div class="quiz-brand-bottom">
+      <img src="logo-menu.png" alt="" onerror="this.style.display='none';">
+    </div>
   </section>
 
 </div>
@@ -385,6 +391,7 @@
   let answered = false;
   let timeLeft = CONFIG.TIME_PER_QUESTION;
   let timerInterval = null;
+  let nextQuestionTimeout = null;
   let endReturnTimeout = null;
   let endCountdownInterval = null;
   let optionEls = [];
@@ -398,9 +405,9 @@
   const startScreen   = document.getElementById('start-screen');
   const quizScreen    = document.getElementById('quiz-screen');
   const btnIniciar    = document.getElementById('btn-iniciar');
+  const btnTerminar   = document.getElementById('btn-terminar');
   const scoreboardEl  = document.getElementById('scoreboard');
 
-  const catChip       = document.getElementById('cat-chip');
   const qCounter      = document.getElementById('q-counter');
   const liveScoreEl   = document.getElementById('live-score');
   const timerFillEl   = document.getElementById('timer-fill');
@@ -443,6 +450,13 @@
   function showScreen(name){
     startScreen.classList.toggle('hidden', name !== 'start');
     quizScreen.classList.toggle('hidden', name !== 'quiz');
+  }
+
+  function clearGameTimers(){
+    clearInterval(timerInterval);
+    clearTimeout(nextQuestionTimeout);
+    clearTimeout(endReturnTimeout);
+    clearInterval(endCountdownInterval);
   }
 
   /* =====================================================================
@@ -514,8 +528,6 @@
     answered = false;
     const q = currentGameQuestions[currentIndex];
 
-    catChip.textContent = q.category;
-    catChip.className = 'chip chip-' + q.category.toLowerCase();
     qCounter.textContent = `${currentIndex + 1} / ${currentGameQuestions.length}`;
     questionText.textContent = q.q;
 
@@ -576,7 +588,8 @@
 
     updateScoreDisplay(pts);
 
-    setTimeout(() => {
+    clearTimeout(nextQuestionTimeout);
+    nextQuestionTimeout = setTimeout(() => {
       currentIndex++;
       if(currentIndex < currentGameQuestions.length){
         renderQuestion();
@@ -590,6 +603,8 @@
      INICIO / FIN DE PARTIDA
      ===================================================================== */
   function startGame(){
+    clearGameTimers();
+    endOverlay.classList.add('hidden');
     score = 0;
     correctCount = 0;
     currentIndex = 0;
@@ -602,6 +617,16 @@
     showScreen('quiz');
     renderQuestion();
     tryFullscreen();
+  }
+
+  function finishWithoutSaving(){
+    clearGameTimers();
+    answered = true;
+    currentGameQuestions = [];
+    currentIndex = 0;
+    endOverlay.classList.add('hidden');
+    showScreen('start');
+    renderScoreboard();
   }
 
   function tierFor(pct){
@@ -643,8 +668,7 @@
   }
 
   function returnToStart(){
-    clearTimeout(endReturnTimeout);
-    clearInterval(endCountdownInterval);
+    clearGameTimers();
     endOverlay.classList.add('hidden');
     showScreen('start');
     renderScoreboard();
@@ -669,6 +693,7 @@
      ARRANQUE
      ===================================================================== */
   btnIniciar.addEventListener('click', startGame);
+  btnTerminar.addEventListener('click', finishWithoutSaving);
   loadScoreboard();
   renderScoreboard();
 })();
