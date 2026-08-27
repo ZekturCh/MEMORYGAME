@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tablet</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: #101112; color: #fff; font-family: Arial, Helvetica, sans-serif; }
+    main { width: min(720px, 100%); margin: 0 auto; padding: 24px 16px; display: grid; gap: 16px; }
+    h1 { margin: 0 0 4px; font-size: clamp(36px, 9vw, 58px); line-height: 1; }
+    p { margin: 0; color: #9fa7af; }
+    section { padding: 16px; border: 1px solid #33383d; border-radius: 8px; background: #191b1d; display: grid; gap: 12px; }
+    label { font-weight: 800; color: #dde2e7; }
+    .row { display: grid; grid-template-columns: 1fr auto; gap: 10px; }
+    input, button { min-height: 54px; border-radius: 8px; font: inherit; }
+    input { min-width: 0; padding: 0 14px; border: 1px solid #33383d; outline: 0; background: #080909; color: #fff; font-size: 20px; }
+    button { border: 0; padding: 0 18px; background: #36d3b6; color: #061210; font-weight: 900; cursor: pointer; }
+    #clearPad, #clearScreen { background: #25282b; color: #fff; border: 1px solid #393e44; }
+    #sendSignature { background: #ffd05c; color: #151006; }
+    .top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    canvas { width: 100%; aspect-ratio: 16 / 7; display: block; border: 1px solid #33383d; border-radius: 8px; background: #070808; touch-action: none; }
+    footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: #9fa7af; font-size: 14px; }
+    .error { color: #ff7483; }
+    @media (max-width: 520px) { .row { grid-template-columns: 1fr; } button, input { width: 100%; } footer { flex-direction: column; align-items: stretch; } }
+  </style>
+</head>
+<body data-page="tablet">
+  <main>
+    <header>
+      <h1>Nombre o firma</h1>
+      <p>Todo lo enviado aparece en la pantalla.</p>
+    </header>
+
+    <section>
+      <label for="room">Sala</label>
+      <input id="room" value="demo" autocomplete="off">
+    </section>
+
+    <section>
+      <form id="nameForm">
+        <label for="name">Nombre</label>
+        <div class="row">
+          <input id="name" maxlength="48" autocomplete="off" placeholder="Escribe aqui">
+          <button>Enviar</button>
+        </div>
+      </form>
+    </section>
+
+    <section>
+      <div class="top">
+        <label for="pad">Firma</label>
+        <button id="clearPad" type="button">Limpiar</button>
+      </div>
+      <canvas id="pad"></canvas>
+      <button id="sendSignature" type="button">Enviar firma</button>
+    </section>
+
+    <footer>
+      <button id="clearScreen" type="button">Limpiar pantalla</button>
+      <span id="status">Listo</span>
+    </footer>
+  </main>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
