@@ -1,6 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
 import {
   getDatabase,
+  get,
   limitToLast,
   onChildAdded,
   onValue,
@@ -8,8 +9,7 @@ import {
   push,
   query,
   ref,
-  set,
-  startAt
+  set
 } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
 
 const firebaseConfig = {
@@ -26,6 +26,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const page = document.body.dataset.page;
+const ADMIN_CODE = "73";
 
 function roomName() {
   const params = new URLSearchParams(location.search);
@@ -52,8 +53,131 @@ function initScreen() {
   const layer = document.getElementById("layer");
   const openedAt = Date.now();
   const floats = [];
+  const existingIds = new Set();
+  const pendingItems = [];
+  let initialLoadDone = false;
+  let floatCount = 0;
 
-  function addFloat(el) {
+  const defaultSettings = {
+    videoScale: 92,
+    videoStretchX: 100,
+    videoStretchY: 100,
+    bgColor: "#061b34",
+    textSize: 42,
+    signatureSize: 260
+  };
+  let screenSettings = loadScreenSettings();
+
+  function loadScreenSettings() {
+    try {
+      return { ...defaultSettings, ...JSON.parse(localStorage.getItem("ledScreenSettings") || "{}") };
+    } catch {
+      return { ...defaultSettings };
+    }
+  }
+
+  function saveScreenSettings() {
+    localStorage.setItem("ledScreenSettings", JSON.stringify(screenSettings));
+  }
+
+  function applyScreenSettings() {
+    const root = document.documentElement.style;
+    root.setProperty("--video-scale", screenSettings.videoScale / 100);
+    root.setProperty("--video-stretch-x", screenSettings.videoStretchX / 100);
+    root.setProperty("--video-stretch-y", screenSettings.videoStretchY / 100);
+    root.setProperty("--screen-bg", screenSettings.bgColor);
+    root.setProperty("--text-size", `${screenSettings.textSize}px`);
+    root.setProperty("--signature-size", `${screenSettings.signatureSize}px`);
+  }
+
+  function removeFloat(item) {
+    const index = floats.indexOf(item);
+    if (index >= 0) floats.splice(index, 1);
+    item.el.remove();
+    renderAdminList();
+  }
+
+  function clearVisible() {
+    layer.replaceChildren();
+    floats.length = 0;
+    renderAdminList();
+  }
+
+  function renderAdminList() {
+    const list = document.getElementById("adminList");
+    if (!list) return;
+    list.replaceChildren();
+
+    if (!floats.length) {
+      const empty = document.createElement("div");
+      empty.className = "admin-item";
+      empty.innerHTML = "<span>No hay elementos activos</span>";
+      list.appendChild(empty);
+      return;
+    }
+
+    floats.slice().reverse().forEach((item) => {
+      const row = document.createElement("div");
+      row.className = "admin-item";
+      const label = document.createElement("span");
+      label.textContent = item.label;
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "danger";
+      button.textContent = "Borrar";
+      button.addEventListener("click", () => removeFloat(item));
+      row.append(label, button);
+      list.appendChild(row);
+    });
+  }
+
+  function setupAdminPanel() {
+    const hotspot = document.getElementById("adminHotspot");
+    const panel = document.getElementById("adminPanel");
+    const close = document.getElementById("closeAdmin");
+    const clear = document.getElementById("clearVisible");
+    const reset = document.getElementById("resetSettings");
+
+    document.querySelectorAll("[data-setting]").forEach((input) => {
+      const setting = input.dataset.setting;
+      input.value = screenSettings[setting];
+      input.addEventListener("input", () => {
+        screenSettings[setting] = input.type === "color" ? input.value : Number(input.value);
+        applyScreenSettings();
+        saveScreenSettings();
+      });
+    });
+
+    hotspot?.addEventListener("click", () => {
+      const code = prompt("Codigo de operador");
+      if (code !== ADMIN_CODE) {
+        setStatus("Codigo incorrecto", true);
+        return;
+      }
+      panel.classList.add("open");
+      renderAdminList();
+    });
+
+    close?.addEventListener("click", () => panel.classList.remove("open"));
+    panel?.addEventListener("click", (event) => {
+      if (event.target === panel) panel.classList.remove("open");
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") panel?.classList.remove("open");
+    });
+
+    clear?.addEventListener("click", clearVisible);
+    reset?.addEventListener("click", () => {
+      screenSettings = { ...defaultSettings };
+      document.querySelectorAll("[data-setting]").forEach((input) => {
+        input.value = screenSettings[input.dataset.setting];
+      });
+      applyScreenSettings();
+      saveScreenSettings();
+    });
+  }
+
+  function addFloat(el, data = {}) {
     layer.appendChild(el);
     const rect = el.getBoundingClientRect();
     const maxX = innerWidth - rect.width;
@@ -62,7 +186,9 @@ function initScreen() {
     const speed = 0.55 + Math.random() * 0.8;
 
     floats.push({
+      id: data.id || `local-${floatCount++}`,
       el,
+      label: data.label || "Elemento",
       x: Math.random() * Math.max(1, maxX),
       y: Math.random() * Math.max(1, maxY),
       vx: Math.cos(angle) * speed,
@@ -71,26 +197,35 @@ function initScreen() {
     });
 
     while (floats.length > 80) floats.shift().el.remove();
+    renderAdminList();
   }
 
-  function addText(text) {
+  function addText(text, id) {
     const el = document.createElement("div");
     el.className = "float";
     el.textContent = text;
-    addFloat(el);
+    addFloat(el, {
+      id,
+      label: `Texto: ${text || ""}`.slice(0, 80)
+    });
   }
 
-  function addSignature(svgPath) {
+  function addSignature(svgPath, id) {
+    const cleanPath = String(svgPath || "").replace(/[^ML0-9.,\s-]/gi, "");
+    if (!cleanPath.trim()) return;
     const el = document.createElement("div");
     el.className = "float firma";
-    el.innerHTML = `<svg viewBox="0 0 1000 440" preserveAspectRatio="xMidYMid meet"><path d="${svgPath}"></path></svg>`;
-    addFloat(el);
+    el.innerHTML = `<svg viewBox="0 0 1000 440" preserveAspectRatio="xMidYMid meet"><path d="${cleanPath}"></path></svg>`;
+    addFloat(el, {
+      id,
+      label: `Firma ${new Date().toLocaleTimeString()}`
+    });
   }
 
-  function addItem(data) {
+  function addItem(data, id) {
     if (!data) return;
-    if (data.type === "text") addText(data.text || "");
-    if (data.type === "signature") addSignature(data.signature || "");
+    if (data.type === "text") addText(data.text || "", id);
+    if (data.type === "signature") addSignature(data.signature || "", id);
   }
 
   function animate() {
@@ -110,12 +245,30 @@ function initScreen() {
   const q = query(
     ref(db, path("items")),
     orderByChild("createdAt"),
-    startAt(openedAt - 1000),
     limitToLast(80)
   );
 
+  get(q).then((snap) => {
+    snap.forEach((child) => existingIds.add(child.key));
+    initialLoadDone = true;
+    setStatus("En vivo");
+    pendingItems.splice(0).forEach((item) => {
+      if (!existingIds.has(item.key)) addItem(item.value, item.key);
+    });
+  }).catch(() => setStatus("Sin acceso", true));
+
   onChildAdded(q, (snap) => {
-    addItem(snap.val());
+    if (!initialLoadDone) {
+      pendingItems.push({ key: snap.key, value: snap.val() });
+      return;
+    }
+    if (existingIds.has(snap.key)) return;
+    existingIds.add(snap.key);
+    addItem(snap.val(), snap.key);
+    setStatus("En vivo");
+  }, () => setStatus("Sin acceso", true));
+
+  onValue(ref(db, path("items")), () => {
     setStatus("En vivo");
   }, () => setStatus("Sin acceso", true));
 
@@ -123,9 +276,12 @@ function initScreen() {
     if (Number(snap.val() || 0) > openedAt - 1000) {
       layer.replaceChildren();
       floats.length = 0;
+      renderAdminList();
     }
   });
 
+  applyScreenSettings();
+  setupAdminPanel();
   animate();
 }
 
