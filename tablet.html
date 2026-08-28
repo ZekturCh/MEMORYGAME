@@ -18,6 +18,16 @@
         radial-gradient(circle at 82% 76%, rgba(255,255,255,.18) 0, transparent 28%),
         linear-gradient(140deg, #020307 0%, #061a37 45%, #010103 100%);
     }
+    .logo-menu {
+  max-width: min(230px, 58vw);
+  max-height: 72px;
+}
+
+.logo-73 {
+  max-width: min(118px, 32vw);
+  max-height: 34px;
+  margin-top: -8px;
+}
     button, input { font: inherit; }
     button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
     .scene {
@@ -190,8 +200,8 @@
 <body data-page="tablet">
   <main class="scene">
     <header class="brand">
-      <img src="logo.png" alt="ALAFARPE" onerror="this.hidden=true;this.nextElementSibling.hidden=false">
-      <div class="brand-fallback" hidden>ALAFARPE<span>73 anos</span></div>
+     <img class="logo-menu" src="logo-menu.png" alt="ALAFARPE" onerror="this.onerror=null;this.src='logo-men%C3%BA.png'">
+    <img class="logo-73" src="logo-73-anios-03.png" alt="73 anos">
     </header>
 
     <input id="room" type="hidden" value="demo">
