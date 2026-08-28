@@ -5,14 +5,51 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Pantalla LED</title>
   <style>
-    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: Arial, Helvetica, sans-serif; }
-    #screen { position: relative; width: 100vw; height: 100vh; overflow: hidden; background: #000; }
-    video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    :root {
+      --video-scale: .92;
+      --video-stretch-x: 1;
+      --video-stretch-y: 1;
+      --screen-bg: #061b34;
+      --text-size: 42px;
+      --signature-size: 260px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: var(--screen-bg); font-family: Arial, Helvetica, sans-serif; }
+    #screen { position: relative; width: 100vw; height: 100vh; overflow: hidden; background: var(--screen-bg); }
+    video {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      transform: translate(-50%, -50%) scale(var(--video-scale)) scaleX(var(--video-stretch-x)) scaleY(var(--video-stretch-y));
+      transform-origin: center;
+    }
     #layer { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
-    .float { position: absolute; left: 0; top: 0; color: rgba(255,255,255,.86); font: 400 clamp(34px,4.8vw,82px)/1 Arial, Helvetica, sans-serif; white-space: nowrap; text-shadow: 0 0 2px rgba(255,255,255,.6), 0 0 14px rgba(255,255,255,.32); will-change: transform; }
-    .firma { width: clamp(190px,25vw,450px); height: auto; filter: drop-shadow(0 0 2px rgba(255,255,255,.9)) drop-shadow(0 0 12px rgba(255,255,255,.35)); }
+    .float { position: absolute; left: 0; top: 0; color: rgba(255,255,255,.86); font: 400 var(--text-size)/1 Arial, Helvetica, sans-serif; white-space: nowrap; text-shadow: 0 0 2px rgba(255,255,255,.6), 0 0 14px rgba(255,255,255,.32); will-change: transform; }
+    .firma { width: var(--signature-size); height: auto; filter: drop-shadow(0 0 2px rgba(255,255,255,.9)) drop-shadow(0 0 12px rgba(255,255,255,.35)); }
     .firma path { fill: none; stroke: rgba(255,255,255,.9); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
     #status { position: fixed; right: 12px; bottom: 12px; padding: 8px 10px; border-radius: 6px; background: rgba(0,0,0,.45); color: rgba(255,255,255,.65); font: 13px Arial, Helvetica, sans-serif; }
+    #adminHotspot { position: fixed; left: 0; bottom: 0; z-index: 20; width: 72px; height: 72px; padding: 0; border: 0; background: transparent; opacity: 0; cursor: default; }
+    #adminPanel { position: fixed; inset: 0; z-index: 30; display: none; place-items: center; background: rgba(0,0,0,.34); color: #fff; }
+    #adminPanel.open { display: grid; }
+    .admin-box { width: min(760px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto; padding: 18px; border: 1px solid rgba(140,175,210,.35); border-radius: 8px; background: rgba(5,22,42,.94); box-shadow: 0 24px 90px rgba(0,0,0,.45); }
+    .admin-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+    .admin-head h2 { margin: 0; font-size: 24px; line-height: 1; }
+    .admin-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .admin-field { display: grid; gap: 7px; padding: 12px; border: 1px solid rgba(255,255,255,.12); border-radius: 8px; background: rgba(255,255,255,.045); }
+    .admin-field label { color: rgba(255,255,255,.82); font-weight: 700; font-size: 13px; }
+    .admin-field input[type="range"] { width: 100%; }
+    .admin-field input[type="color"] { width: 100%; height: 42px; border: 0; border-radius: 6px; background: transparent; }
+    .admin-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0; }
+    .admin-list { display: grid; gap: 8px; max-height: 210px; overflow: auto; padding-right: 4px; }
+    .admin-item { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; padding: 10px; border-radius: 8px; background: rgba(255,255,255,.07); }
+    .admin-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: rgba(255,255,255,.86); }
+    .admin-box button { min-height: 38px; border: 0; border-radius: 6px; padding: 0 12px; background: #35d3b6; color: #061210; font: 800 14px Arial, Helvetica, sans-serif; cursor: pointer; }
+    .admin-box .danger { background: #ff697c; color: #210307; }
+    .admin-box .ghost { border: 1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.08); color: #fff; }
+    @media (max-width: 640px) { .admin-grid { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body data-page="screen">
@@ -20,6 +57,46 @@
     <video src="video.mp4" autoplay muted loop playsinline></video>
     <div id="layer"></div>
     <div id="status">Conectando</div>
+    <button id="adminHotspot" type="button" aria-label="Abrir ajustes"></button>
+    <section id="adminPanel" aria-label="Ajustes de pantalla">
+      <div class="admin-box">
+        <div class="admin-head">
+          <h2>Ajustes</h2>
+          <button id="closeAdmin" class="ghost" type="button">Cerrar</button>
+        </div>
+        <div class="admin-grid">
+          <div class="admin-field">
+            <label for="videoScale">Video tamano</label>
+            <input id="videoScale" data-setting="videoScale" type="range" min="70" max="115" value="92">
+          </div>
+          <div class="admin-field">
+            <label for="videoStretchX">Estirar horizontal</label>
+            <input id="videoStretchX" data-setting="videoStretchX" type="range" min="80" max="130" value="100">
+          </div>
+          <div class="admin-field">
+            <label for="videoStretchY">Estirar vertical</label>
+            <input id="videoStretchY" data-setting="videoStretchY" type="range" min="80" max="130" value="100">
+          </div>
+          <div class="admin-field">
+            <label for="bgColor">Color fondo</label>
+            <input id="bgColor" data-setting="bgColor" type="color" value="#061b34">
+          </div>
+          <div class="admin-field">
+            <label for="textSize">Tamano letras</label>
+            <input id="textSize" data-setting="textSize" type="range" min="18" max="82" value="42">
+          </div>
+          <div class="admin-field">
+            <label for="signatureSize">Tamano firmas</label>
+            <input id="signatureSize" data-setting="signatureSize" type="range" min="100" max="520" value="260">
+          </div>
+        </div>
+        <div class="admin-actions">
+          <button id="clearVisible" class="danger" type="button">Limpiar todo</button>
+          <button id="resetSettings" class="ghost" type="button">Restaurar ajustes</button>
+        </div>
+        <div id="adminList" class="admin-list"></div>
+      </div>
+    </section>
   </main>
   <script type="module" src="app.js"></script>
 </body>
