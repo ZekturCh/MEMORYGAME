@@ -316,6 +316,8 @@ function initTablet() {
   let drawing = false;
   let strokes = [];
   let current = [];
+  const minPointDistance = 9;
+  const maxSignatureChars = 11000;
 
   function resizePad() {
     const dpr = devicePixelRatio || 1;
@@ -339,6 +341,10 @@ function initTablet() {
     };
   }
 
+  function distance(a, b) {
+    return Math.hypot(a.x - b.x, a.y - b.y);
+  }
+
   function drawLine(a, b) {
     const rect = canvas.getBoundingClientRect();
     ctx.beginPath();
@@ -356,7 +362,7 @@ function initTablet() {
   }
 
   function signaturePath() {
-    return strokes.map((stroke) => stroke.map((p, i) => `${i ? "L" : "M"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" ")).join(" ");
+    return strokes.map((stroke) => stroke.map((p, i) => `${i ? "L" : "M"} ${p.x.toFixed(0)} ${p.y.toFixed(0)}`).join(" ")).join(" ");
   }
 
   function clearPad() {
@@ -374,7 +380,9 @@ function initTablet() {
   canvas.addEventListener("pointermove", (e) => {
     if (!drawing) return;
     const p = point(e);
-    drawLine(current[current.length - 1], p);
+    const last = current[current.length - 1];
+    if (distance(last, p) < minPointDistance) return;
+    drawLine(last, p);
     current.push(p);
   });
 
@@ -409,11 +417,16 @@ function initTablet() {
 
   document.getElementById("sendSignature").addEventListener("click", async () => {
     if (!strokes.length) return setStatus("Dibuja una firma", true);
+    const signature = signaturePath();
+    if (signature.length > maxSignatureChars) {
+      setStatus("Firma muy larga, presiona Limpiar", true);
+      return;
+    }
 
     try {
       await push(ref(db, path("items")), {
         type: "signature",
-        signature: signaturePath(),
+        signature,
         createdAt: Date.now()
       });
       clearPad();
