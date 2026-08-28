@@ -34,31 +34,34 @@
       padding: clamp(18px, 4vh, 42px) 18px;
       display: grid;
       grid-template-rows: auto 1fr auto;
-      gap: clamp(10px, 2.5vh, 22px);
+      gap: clamp(18px, 4vh, 34px);
       align-items: center;
       position: relative;
       z-index: 1;
     }
     .brand {
+      position: relative;
       display: grid;
-      place-items: center;
-      align-content: center;
-      gap: 0;
-      min-height: 118px;
+      place-items: start center;
+      min-height: 128px;
     }
     .brand img {
       object-fit: contain;
       filter: drop-shadow(0 8px 20px rgba(0,0,0,.8)) drop-shadow(0 0 10px rgba(255,255,255,.12));
     }
-       .logo-menu {
-      max-width: min(430px, 78vw);
-      max-height: 130px;
+    .logo-menu {
+      width: min(520px, 78vw);
+      max-height: 118px;
+      object-fit: contain;
     }
-    
     .logo-73 {
-      max-width: min(190px, 42vw);
-      max-height: 58px;
-      margin-top: -14px;
+      position: absolute;
+      top: 76px;
+      left: 50%;
+      width: min(210px, 36vw);
+      max-height: 72px;
+      object-fit: contain;
+      transform: translateX(-50%);
     }
     .brand-fallback {
       text-align: center;
