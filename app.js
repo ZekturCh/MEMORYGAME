@@ -290,6 +290,27 @@ function initTablet() {
   const params = new URLSearchParams(location.search);
   room.value = params.get("room") || room.value || "demo";
 
+  const views = {
+    menu: document.getElementById("menuView"),
+    name: document.getElementById("nameView"),
+    signature: document.getElementById("signatureView"),
+    sent: document.getElementById("sentView")
+  };
+  let sentTimer = 0;
+
+  function showView(name) {
+    Object.values(views).forEach((view) => view?.classList.remove("active"));
+    views[name]?.classList.add("active");
+    if (name === "signature") requestAnimationFrame(resizePad);
+  }
+
+  function showSent() {
+    window.clearTimeout(sentTimer);
+    setStatus("Listo");
+    showView("sent");
+    sentTimer = window.setTimeout(() => showView("menu"), 3000);
+  }
+
   const canvas = document.getElementById("pad");
   const ctx = canvas.getContext("2d");
   let drawing = false;
@@ -299,6 +320,7 @@ function initTablet() {
   function resizePad() {
     const dpr = devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
     canvas.width = rect.width * dpr;
     canvas.height = rect.height * dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -379,7 +401,7 @@ function initTablet() {
     try {
       await push(ref(db, path("items")), { type: "text", text, createdAt: Date.now() });
       input.value = "";
-      setStatus("Enviado");
+      showSent();
     } catch {
       setStatus("No se pudo enviar", true);
     }
@@ -395,7 +417,7 @@ function initTablet() {
         createdAt: Date.now()
       });
       clearPad();
-      setStatus("Firma enviada");
+      showSent();
     } catch {
       setStatus("No se pudo enviar", true);
     }
@@ -403,12 +425,16 @@ function initTablet() {
 
   document.getElementById("clearPad").addEventListener("click", clearPad);
 
-  document.getElementById("clearScreen").addEventListener("click", async () => {
-    try {
-      await set(ref(db, path("clear")), Date.now());
-      setStatus("Pantalla limpia");
-    } catch {
-      setStatus("No se pudo limpiar", true);
-    }
+  document.getElementById("chooseName").addEventListener("click", () => {
+    showView("name");
+    document.getElementById("name").focus();
+  });
+
+  document.getElementById("chooseSignature").addEventListener("click", () => showView("signature"));
+  document.getElementById("backName").addEventListener("click", () => showView("menu"));
+  document.getElementById("backSignature").addEventListener("click", () => showView("menu"));
+  document.getElementById("clearName").addEventListener("click", () => {
+    document.getElementById("name").value = "";
+    setStatus("Listo");
   });
 }
