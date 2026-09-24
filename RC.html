@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>ParalelVR · Puzzle Valores · Huecos</title>
+<title>ParalelVR · Puzzle Valores · Validación final</title>
 <style>
 :root {
   --bg:#050814;
@@ -164,11 +164,6 @@ body {
   vector-effect:non-scaling-stroke;
   transition:fill .2s ease, stroke .2s ease, filter .2s ease, opacity .2s ease;
 }
-.target-svg polygon.ready {
-  fill:rgba(3,7,16,.72);
-  stroke:var(--cyan);
-  filter:drop-shadow(0 0 7px rgba(0,229,255,.95));
-}
 .target-svg polygon.placed {
   fill:transparent;
   stroke:rgba(140,247,210,.24);
@@ -319,6 +314,51 @@ body {
   box-shadow:0 0 14px rgba(0,229,255,.5);
   transition:width .35s ease;
 }
+
+.placed-visual {
+  position:absolute;
+  z-index:8;
+  pointer-events:none;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transform-origin:center;
+}
+.placed-visual svg {
+  width:100%;
+  height:100%;
+  overflow:visible;
+  filter:drop-shadow(0 5px 10px rgba(0,0,0,.38));
+}
+.placed-visual.correct {
+  animation:correctPulse .45s ease both;
+}
+.placed-visual.wrong {
+  animation:wrongPulse .72s ease both;
+  filter:drop-shadow(0 0 12px rgba(255,46,76,.95));
+}
+.target-svg polygon.wrong {
+  fill:rgba(255,30,58,.34);
+  stroke:#ff3557;
+  filter:drop-shadow(0 0 8px rgba(255,30,58,.9));
+}
+.target-svg polygon.correct {
+  fill:transparent;
+  stroke:rgba(140,247,210,.28);
+}
+@keyframes wrongPulse {
+  0%,100% { transform:translateX(0); filter:drop-shadow(0 0 0 rgba(255,40,70,0)); }
+  18% { transform:translateX(-6px); filter:drop-shadow(0 0 16px rgba(255,40,70,.95)); }
+  36% { transform:translateX(6px); }
+  54% { transform:translateX(-5px); }
+  72% { transform:translateX(4px); }
+}
+@keyframes correctPulse {
+  0% { transform:scale(.96); }
+  55% { transform:scale(1.04); filter:drop-shadow(0 0 12px rgba(140,247,210,.65)); }
+  100% { transform:scale(1); }
+}
+
 .toast {
   position:fixed;
   left:50%;
@@ -439,7 +479,6 @@ const CONFIG = {
   logoFile: "paralel-logo.png",
   values: ["RESPETO","SOLIDARIDAD","HONESTIDAD","PARALEL VR"],
   nextStageDelay: 650,
-  snapTolerance: 0.145
 };
 
 const FALLBACK_IMAGE = "data:image/svg+xml;base64,CjxzdmcgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB3aWR0aD0iMTYwMCIgaGVpZ2h0PSIxNjAwIiB2aWV3Qm94PSIwIDAgMTYwMCAxNjAwIj4KPGRlZnM+CiAgPGxpbmVhckdyYWRpZW50IGlkPSJiZyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMDUwODE0Ii8+CiAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMwYjEwMjUiLz4KICA8L2xpbmVhckdyYWRpZW50PgogIDxsaW5lYXJHcmFkaWVudCBpZD0iYyIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMDBlNWZmIi8+CiAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiM3YzNjZmYiLz4KICA8L2xpbmVhckdyYWRpZW50PgogIDxsaW5lYXJHcmFkaWVudCBpZD0ibSIgeDE9IjAiIHkxPSIwIiB4Mj0iMSIgeTI9IjEiPgogICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjZmYyYWQ0Ii8+CiAgICA8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiM3YzNjZmYiLz4KICA8L2xpbmVhckdyYWRpZW50PgogIDxmaWx0ZXIgaWQ9Imdsb3ciPjxmZUdhdXNzaWFuQmx1ciBzdGREZXZpYXRpb249IjE4IiByZXN1bHQ9ImIiLz48ZmVNZXJnZT48ZmVNZXJnZU5vZGUgaW49ImIiLz48ZmVNZXJnZU5vZGUgaW49IlNvdXJjZUdyYXBoaWMiLz48L2ZlTWVyZ2U+PC9maWx0ZXI+CjwvZGVmcz4KPHJlY3Qgd2lkdGg9IjE2MDAiIGhlaWdodD0iMTYwMCIgZmlsbD0idXJsKCNiZykiLz4KPGcgb3BhY2l0eT0iLjIyIj4KICA8cGF0aCBkPSJNLTEwMCAzNTAgQzMwMCAxMDAgNTAwIDYwMCA5MDAgMzIwIFMxNDUwIDEwMCAxNzUwIDQyMCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDBlNWZmIiBzdHJva2Utd2lkdGg9IjE4Ii8+CiAgPHBhdGggZD0iTS0xMDAgNDYwIEMzNDAgMTgwIDYyMCA3MTAgOTgwIDQzMCBTMTQ2MCAyNTAgMTcxMCA1MjAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmMmFkNCIgc3Ryb2tlLXdpZHRoPSIxMiIvPgogIDxwYXRoIGQ9Ik0tODAgMTIwMCBDMjgwIDkyMCA2NTAgMTM1MCAxMDUwIDEwNDAgUzE1MDAgOTAwIDE3NTAgMTE4MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjN2MzY2ZmIiBzdHJva2Utd2lkdGg9IjE2Ii8+CjwvZz4KPGcgc3Ryb2tlPSIjMWQyOTRhIiBzdHJva2Utd2lkdGg9IjMiPgogIDxyZWN0IHg9IjQ1IiB5PSI0NSIgd2lkdGg9Ijc0MCIgaGVpZ2h0PSI3NDAiIHJ4PSI0MiIgZmlsbD0iIzA4MTExZiIvPgogIDxyZWN0IHg9IjgxNSIgeT0iNDUiIHdpZHRoPSI3NDAiIGhlaWdodD0iNzQwIiByeD0iNDIiIGZpbGw9IiMxMjA5MWQiLz4KICA8cmVjdCB4PSI0NSIgeT0iODE1IiB3aWR0aD0iNzQwIiBoZWlnaHQ9Ijc0MCIgcng9IjQyIiBmaWxsPSIjMGEwZDFmIi8+CiAgPHJlY3QgeD0iODE1IiB5PSI4MTUiIHdpZHRoPSI3NDAiIGhlaWdodD0iNzQwIiByeD0iNDIiIGZpbGw9IiMwNzExMWEiLz4KPC9nPgo8ZyBmb250LWZhbWlseT0iQXJpYWwsSGVsdmV0aWNhLHNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSI3MDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbHRlcj0idXJsKCNnbG93KSI+CiAgPHRleHQgeD0iNDE1IiB5PSIzOTAiIGZvbnQtc2l6ZT0iMTE4IiBmaWxsPSIjZmZmZmZmIj5SRVNQRVRPPC90ZXh0PgogIDx0ZXh0IHg9IjExODUiIHk9IjM5MCIgZm9udC1zaXplPSIxMDMiIGZpbGw9IiNmZmZmZmYiPlNPTElEQVJJREFEPC90ZXh0PgogIDx0ZXh0IHg9IjQxNSIgeT0iMTE2MCIgZm9udC1zaXplPSIxMDgiIGZpbGw9IiNmZmZmZmYiPkhPTkVTVElEQUQ8L3RleHQ+CiAgPHRleHQgeD0iMTE4NSIgeT0iMTEyMCIgZm9udC1zaXplPSI5NiIgZmlsbD0iI2ZmZmZmZiI+UEFSQUxFTCBWUjwvdGV4dD4KPC9nPgo8ZyBvcGFjaXR5PSIuOCI+CiAgPGNpcmNsZSBjeD0iNDE1IiBjeT0iNTIwIiByPSI4NSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ1cmwoI2MpIiBzdHJva2Utd2lkdGg9IjE0Ii8+CiAgPHBhdGggZD0iTTM1NSA1MjBoMTIwTTQxNSA0NjB2MTIwIiBzdHJva2U9IiMwMGU1ZmYiIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogIDxwYXRoIGQ9Ik0xMDgwIDUwMGM4MC05NSAyMjAtOTUgMzAwIDAtODAgOTUtMjIwIDk1LTMwMCAweiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ1cmwoI20pIiBzdHJva2Utd2lkdGg9IjE0Ii8+CiAgPHBhdGggZD0iTTMwMCAxMzAwbDExNS05NSAxMTUgOTUtMTE1IDk1eiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ1cmwoI2MpIiBzdHJva2Utd2lkdGg9IjE0Ii8+CiAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMTA5NSAxMjMwKSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDBlNWZmIiBzdHJva2Utd2lkdGg9IjExIj4KICAgIDxwYXRoIGQ9Ik0wIDcwIDkwIDIwbDkwIDUwLTkwIDUweiIvPgogICAgPHBhdGggZD0iTTkwIDEyMHYxMDBNMCA3MHYxMDBsOTAgNTAgOTAtNTBWNzAiLz4KICA8L2c+CjwvZz4KPHRleHQgeD0iODAwIiB5PSIxNTMwIiBmb250LWZhbWlseT0iQXJpYWwsSGVsdmV0aWNhLHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNDIiIGZpbGw9IiNiOGM1ZTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGxldHRlci1zcGFjaW5nPSI0Ij4KICBDVUFORE8gQ0FEQSBWQUxPUiBFTkNBSkEsIENPTlNUUlVJTU9TIEFMR08gTcOBUyBHUkFOREUuCjwvdGV4dD4KPC9zdmc+Cg==";
@@ -464,8 +503,13 @@ const q = s => document.querySelector(s);
 const qa = s => [...document.querySelectorAll(s)];
 
 let currentStage = 0;
-let stagePlaced = new Set();
 let totalPlaced = 0;
+
+// slot -> piece. Se conserva hasta que la etapa termine.
+// Esto permite que una pieza equivocada pueda quedarse colocada
+// hasta que se hayan llenado los 5 huecos y recién entonces se valide.
+let placements = new Map();
+let validating = false;
 let puzzleImage = FALLBACK_IMAGE;
 let logoImage = FALLBACK_LOGO;
 
@@ -507,7 +551,8 @@ function activeQuadrant() {
 
 function setStage(stage) {
   currentStage = stage;
-  stagePlaced = new Set();
+  placements = new Map();
+  validating = false;
 
   qa(".quadrant").forEach((el,i) => {
     el.classList.toggle("active", i === stage);
@@ -568,32 +613,38 @@ function createTray() {
   });
 }
 
-function targetPosition(index) {
+function slotPosition(slotIndex) {
   const rect = activeQuadrant().getBoundingClientRect();
-  const [cx,cy] = PIECES[index].center;
+  const [cx,cy] = PIECES[slotIndex].center;
   return {
     x: rect.left + rect.width * cx/100,
     y: rect.top  + rect.height* cy/100,
-    radius: Math.min(rect.width,rect.height)*CONFIG.snapTolerance
+    radius: Math.min(rect.width,rect.height)*0.17
   };
 }
 
-function clearHighlight() {
-  qa(".target-svg polygon").forEach(p=>p.classList.remove("ready"));
+function nearestOpenSlot(x,y) {
+  let best = null;
+  for(let slot=0; slot<5; slot++) {
+    if(placements.has(slot)) continue;
+    const t = slotPosition(slot);
+    const d = Math.hypot(x-t.x,y-t.y);
+    if(d <= t.radius && (!best || d < best.distance)) {
+      best = {slot, distance:d};
+    }
+  }
+  return best ? best.slot : null;
 }
 
-function highlight(x,y,index) {
-  const poly = activeQuadrant().querySelector(`polygon[data-piece="${index}"]`);
-  if(!poly || stagePlaced.has(index)) return;
-  const t = targetPosition(index);
-  poly.classList.toggle("ready", Math.hypot(x-t.x,y-t.y) < t.radius*1.25);
-}
+
+
+
 
 function bindDrag(el) {
   let active=false, dx=0, dy=0;
 
   el.addEventListener("pointerdown", e => {
-    if(el.classList.contains("used")) return;
+    if(el.classList.contains("used") || validating) return;
     e.preventDefault();
     active = true;
     const r = el.getBoundingClientRect();
@@ -610,22 +661,21 @@ function bindDrag(el) {
     e.preventDefault();
     el.style.left = (e.clientX-dx)+"px";
     el.style.top  = (e.clientY-dy)+"px";
-    highlight(e.clientX,e.clientY,+el.dataset.piece);
   });
 
   const end = e => {
     if(!active) return;
     active=false;
-    const ok = tryPlace(+el.dataset.piece,e.clientX,e.clientY);
-    clearHighlight();
+
+    const slot = nearestOpenSlot(e.clientX,e.clientY);
     el.classList.remove("dragging");
 
-    if(ok) {
-      el.classList.add("used");
+    if(slot !== null) {
+      placePieceInSlot(+el.dataset.piece, slot, el);
     } else {
       el.style.left = "";
       el.style.top = "";
-      showToast("Prueba otra posición");
+      showToast("Suelta la pieza dentro de un hueco");
     }
   };
 
@@ -633,39 +683,129 @@ function bindDrag(el) {
   el.addEventListener("pointercancel",end);
 }
 
-function tryPlace(index,x,y) {
-  if(stagePlaced.has(index)) return false;
-  const t = targetPosition(index);
-  if(Math.hypot(x-t.x,y-t.y) > t.radius) return false;
-  lockPiece(index);
-  return true;
+
+
+function polygonBounds(slotIndex) {
+  const pts = PIECES[slotIndex].points.split(" ").map(pair => pair.split(",").map(Number));
+  const xs = pts.map(p=>p[0]), ys = pts.map(p=>p[1]);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = Math.min(...ys), maxY = Math.max(...ys);
+  return {x:minX, y:minY, w:maxX-minX, h:maxY-minY};
 }
 
-function lockPiece(index) {
-  stagePlaced.add(index);
-  totalPlaced++;
+function placePieceInSlot(pieceIndex, slotIndex, trayPiece) {
+  if(validating || placements.has(slotIndex)) return;
+
+  placements.set(slotIndex, pieceIndex);
+  trayPiece.classList.add("used");
+  trayPiece.style.left = "";
+  trayPiece.style.top = "";
 
   const quad = activeQuadrant();
-  const poly = quad.querySelector(`polygon[data-piece="${index}"]`);
-  if(poly) poly.classList.add("placed");
+  const b = polygonBounds(slotIndex);
+  const visual = document.createElement("div");
+  visual.className = "placed-visual";
+  visual.dataset.slot = slotIndex;
+  visual.dataset.piece = pieceIndex;
+  visual.style.left = b.x + "%";
+  visual.style.top = b.y + "%";
+  visual.style.width = b.w + "%";
+  visual.style.height = b.h + "%";
+  visual.innerHTML = pieceSVG(pieceIndex,currentStage);
+  quad.appendChild(visual);
 
+  showToast(`Pieza colocada · ${placements.size}/5`);
+
+  if(placements.size === 5) {
+    setTimeout(validatePlacements, 260);
+  }
+}
+
+function validatePlacements() {
+  if(validating || placements.size < 5) return;
+  validating = true;
+
+  const quad = activeQuadrant();
+  const wrongSlots = [];
+  let correctCount = 0;
+
+  placements.forEach((pieceIndex, slotIndex) => {
+    const visual = quad.querySelector(`.placed-visual[data-slot="${slotIndex}"]`);
+    const poly = quad.querySelector(`polygon[data-piece="${slotIndex}"]`);
+
+    if(pieceIndex === slotIndex) {
+      correctCount++;
+      visual?.classList.add("correct");
+      poly?.classList.add("correct");
+    } else {
+      wrongSlots.push(slotIndex);
+      visual?.classList.add("wrong");
+      poly?.classList.add("wrong");
+    }
+  });
+
+  if(correctCount === 5) {
+    showToast("¡Perfecto! Las 5 piezas están correctas");
+    setTimeout(() => completeStage(), 650);
+    return;
+  }
+
+  showToast(`${wrongSlots.length} ${wrongSlots.length === 1 ? "pieza incorrecta" : "piezas incorrectas"}`);
+
+  // Las equivocadas parpadean en rojo y regresan a la bandeja.
+  setTimeout(() => {
+    wrongSlots.forEach(slotIndex => {
+      const pieceIndex = placements.get(slotIndex);
+      const visual = quad.querySelector(`.placed-visual[data-slot="${slotIndex}"]`);
+      const poly = quad.querySelector(`polygon[data-piece="${slotIndex}"]`);
+      visual?.remove();
+      poly?.classList.remove("wrong");
+
+      const trayPiece = q(`.piece[data-piece="${pieceIndex}"]`);
+      if(trayPiece) trayPiece.classList.remove("used");
+
+      placements.delete(slotIndex);
+    });
+
+    // Las correctas quedan bloqueadas y el hueco se revela.
+    placements.forEach((pieceIndex, slotIndex) => {
+      if(pieceIndex !== slotIndex) return;
+      const visual = quad.querySelector(`.placed-visual[data-slot="${slotIndex}"]`);
+      const poly = quad.querySelector(`polygon[data-piece="${slotIndex}"]`);
+      visual?.remove();
+      poly?.classList.add("placed");
+      poly?.classList.remove("correct");
+    });
+
+    validating = false;
+  }, 850);
+}
+
+function completeStage() {
+  const quad = activeQuadrant();
+
+  // Oculta las piezas superpuestas: la imagen base ya contiene la imagen final.
+  quad.querySelectorAll(".placed-visual").forEach(el => el.remove());
+  quad.querySelectorAll(".target-svg polygon").forEach(poly => {
+    poly.classList.add("placed");
+    poly.classList.remove("wrong","correct");
+  });
+
+  totalPlaced += 5;
   q("#peopleCount").textContent = totalPlaced;
   q("#progressFill").style.width = (totalPlaced/20*100)+"%";
-  showToast(`Pieza ${totalPlaced} de 20`);
 
-  if(stagePlaced.size === 5) {
-    quad.classList.remove("active");
-    quad.classList.add("completed");
-    quad.querySelector(".target-svg").style.display = "none";
+  quad.classList.remove("active");
+  quad.classList.add("completed");
+  quad.querySelector(".target-svg").style.display = "none";
 
-    setTimeout(() => {
-      if(currentStage < 3) {
-        setStage(currentStage+1);
-      } else {
-        finish();
-      }
-    }, CONFIG.nextStageDelay);
-  }
+  setTimeout(() => {
+    if(currentStage < 3) {
+      setStage(currentStage+1);
+    } else {
+      finish();
+    }
+  }, CONFIG.nextStageDelay);
 }
 
 function finish() {
@@ -681,10 +821,12 @@ function finish() {
 
 function resetGame() {
   totalPlaced=0;
+  placements = new Map();
+  validating = false;
   q("#peopleCount").textContent="0";
   q("#progressFill").style.width="0%";
   q("#finalOverlay").classList.remove("show");
-  qa(".locked-piece").forEach(el=>el.remove());
+  qa(".locked-piece,.placed-visual").forEach(el=>el.remove());
   qa(".quadrant").forEach(el => {
     el.classList.remove("completed","active");
     buildTargets(el);
