@@ -85,15 +85,43 @@ img{display:block;pointer-events:none;-webkit-user-drag:none}
   background:rgba(255,255,255,.10);color:#fff;font-weight:800;cursor:pointer;transition:transform .12s ease,filter .12s ease;
 }
 .btn:hover,.play:hover{filter:brightness(1.07)}
+.play-panel{
+  flex:1 1 auto;min-width:0;min-height:0;display:flex;flex-direction:column;overflow:hidden;
+  border:1px solid rgba(255,255,255,.18);border-radius:26px;
+  background:linear-gradient(145deg,rgba(255,255,255,.12),rgba(255,255,255,.055));
+  box-shadow:inset 0 0 60px rgba(0,22,49,.22),0 18px 40px rgba(0,20,45,.16);
+  backdrop-filter:blur(8px);
+}
 .board{
   flex:1 1 auto;min-width:0;min-height:0;display:grid;
   grid-template-columns:repeat(var(--cols,5),var(--card-w,120px));
   grid-template-rows:repeat(var(--rows,2),var(--card-h,160px));
   gap:var(--gap);justify-content:center;align-content:center;
-  padding:clamp(10px,1.5vw,18px);border:1px solid rgba(255,255,255,.18);border-radius:26px;
-  background:linear-gradient(145deg,rgba(255,255,255,.12),rgba(255,255,255,.055));
-  box-shadow:inset 0 0 60px rgba(0,22,49,.22),0 18px 40px rgba(0,20,45,.16);
-  backdrop-filter:blur(8px);
+  padding:clamp(10px,1.5vw,18px);
+}
+.value-message{
+  flex:0 0 auto;min-height:clamp(82px,11vh,116px);
+  margin:0 clamp(10px,1.5vw,18px) clamp(10px,1.5vw,18px);
+  padding:clamp(12px,1.5vw,17px) clamp(14px,2vw,24px);
+  display:flex;align-items:center;justify-content:center;text-align:center;
+  border:1px solid rgba(255,255,255,.17);border-radius:18px;
+  background:linear-gradient(145deg,rgba(0,54,104,.44),rgba(0,107,165,.22));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08);
+}
+.value-copy{max-width:min(900px,94%);will-change:transform,opacity}
+.value-title{
+  margin:0 0 5px;color:#8be4ff;font-size:clamp(17px,2.2vw,25px);font-weight:900;
+  letter-spacing:.08em;text-transform:uppercase;line-height:1.05;
+}
+.value-phrase{
+  margin:0;color:#fff;font-size:clamp(13px,1.65vw,18px);font-weight:650;font-style:italic;
+  line-height:1.35;text-wrap:balance;
+}
+.value-message.initial .value-phrase{color:#ccefff;font-size:clamp(12px,1.45vw,16px);font-weight:650;font-style:normal}
+.value-message.animate .value-copy{animation:valueReveal .44s cubic-bezier(.2,.75,.25,1) both}
+@keyframes valueReveal{
+  from{opacity:0;transform:translateY(10px)}
+  to{opacity:1;transform:translateY(0)}
 }
 .card{
   position:relative;width:100%;height:100%;padding:0;border:0;background:transparent;cursor:pointer;perspective:1100px;
@@ -135,7 +163,11 @@ img{display:block;pointer-events:none;-webkit-user-drag:none}
   .stats{gap:14px}
   .stat b{font-size:19px}
   .stat span{font-size:8px}
-  .board{border-radius:20px}
+  .play-panel{border-radius:20px}
+  .value-message{min-height:74px;margin:0 8px 8px;padding:10px 12px;border-radius:14px}
+  .value-title{font-size:16px}
+  .value-phrase{font-size:12px}
+  .value-message.initial .value-phrase{font-size:12px}
 }
 @media(max-height:600px){
   #game{gap:6px;padding-top:6px;padding-bottom:6px}
@@ -143,8 +175,14 @@ img{display:block;pointer-events:none;-webkit-user-drag:none}
   .brand-mini img{width:38px;height:38px}
   .btn{min-height:40px;min-width:40px}
   .stat span{display:none}
+  .value-message{min-height:56px;margin:0 7px 7px;padding:7px 10px}
+  .value-title{margin-bottom:2px;font-size:14px}
+  .value-phrase,.value-message.initial .value-phrase{font-size:11px;line-height:1.25}
 }
-@media(prefers-reduced-motion:reduce){.inner,.play,.btn{transition:none}.card.matched{animation:none}}
+@media(prefers-reduced-motion:reduce){
+  .inner,.play,.btn{transition:none}
+  .card.matched,.value-message.animate .value-copy{animation:none}
+}
 </style>
 </head>
 <body>
@@ -167,7 +205,15 @@ img{display:block;pointer-events:none;-webkit-user-drag:none}
         <button id="restart" class="btn" type="button" aria-label="Reiniciar"><span>↻</span><span class="label"> Reiniciar</span></button>
       </div>
     </header>
-    <main id="board" class="board" role="grid" aria-label="Tablero de memoria de 10 cartas"></main>
+    <div class="play-panel">
+      <main id="board" class="board" role="grid" aria-label="Tablero de memoria de 10 cartas"></main>
+      <section id="valueMessage" class="value-message initial animate" aria-live="polite" aria-atomic="true">
+        <div class="value-copy">
+          <h2 id="valueTitle" class="value-title" hidden></h2>
+          <p id="valuePhrase" class="value-phrase">Encuentra un par para descubrir su valor</p>
+        </div>
+      </section>
+    </div>
   </section>
 
   <div id="win" class="overlay" hidden>
@@ -205,12 +251,36 @@ img{display:block;pointer-events:none;-webkit-user-drag:none}
     ]
   };
 
+  const VALUE_MESSAGES = Object.freeze({
+    integridad: {
+      title: "INTEGRIDAD",
+      phrase: "Cuidar lo nuestro y respetar lo ajeno."
+    },
+    respeto: {
+      title: "RESPETO",
+      phrase: "Promover un buen ambiente de trabajo. El hostigamiento nunca es una broma."
+    },
+    equipo: {
+      title: "JUNTOS",
+      phrase: "Trabajo en equipo y cero complicidad en malas prácticas."
+    },
+    seguridad: {
+      title: "SEGURIDAD",
+      phrase: "Regresar seguros a casa cada día: reporto peligros, no me arriesgo ni a los demás."
+    },
+    excelencia: {
+      title: "EXCELENCIA",
+      phrase: "Dar lo mejor de mí y asegurar la excelencia en mi trabajo."
+    }
+  });
+
   const state = { deck:[], first:null, second:null, locked:false, moves:0, pairs:0, points:0 };
   const $ = (id) => document.getElementById(id);
   const dom = {
     menu:$("menu"), game:$("game"), board:$("board"), start:$("start"), restart:$("restart"),
     pairs:$("pairs"), moves:$("moves"), points:$("points"), win:$("win"), summary:$("summary"),
-    again:$("again"), menuBtn:$("menuBtn")
+    again:$("again"), menuBtn:$("menuBtn"), valueMessage:$("valueMessage"),
+    valueTitle:$("valueTitle"), valuePhrase:$("valuePhrase")
   };
 
   function shuffle(input) {
@@ -240,6 +310,17 @@ img{display:block;pointer-events:none;-webkit-user-drag:none}
     dom.points.textContent=String(state.points);
   }
 
+  function showValueMessage(valueId=null) {
+    const value=valueId ? VALUE_MESSAGES[valueId] : null;
+    dom.valueTitle.hidden=!value;
+    dom.valueTitle.textContent=value ? value.title : "";
+    dom.valuePhrase.textContent=value ? value.phrase : "Encuentra un par para descubrir su valor";
+    dom.valueMessage.classList.toggle("initial",!value);
+    dom.valueMessage.classList.remove("animate");
+    void dom.valueMessage.offsetWidth;
+    dom.valueMessage.classList.add("animate");
+  }
+
   function showScreen(el) {
     [dom.menu,dom.game].forEach(s=>s.classList.remove("active"));
     el.classList.add("active");
@@ -247,7 +328,7 @@ img{display:block;pointer-events:none;-webkit-user-drag:none}
 
   function createCard(data) {
     const b=document.createElement("button");
-    b.type="button"; b.className="card"; b.dataset.pair=data.pair; b.dataset.uid=data.uid;
+    b.type="button"; b.className="card"; b.dataset.pair=data.pair; b.dataset.uid=data.uid; b.dataset.valueId=data.id;
     b.setAttribute("role","gridcell"); b.setAttribute("aria-label","Carta boca abajo");
 
     const inner=document.createElement("span"); inner.className="inner";
@@ -310,8 +391,9 @@ img{display:block;pointer-events:none;-webkit-user-drag:none}
     if(state.first.dataset.pair===state.second.dataset.pair) {
       state.points+=CONFIG.pointsPerMatch;
       [state.first,state.second].forEach(c=>{c.classList.add("matched");c.disabled=true;c.setAttribute("aria-label","Carta emparejada");});
+      showValueMessage(state.first.dataset.valueId);
       state.pairs++; updateStats(); resetSelection();
-      if(state.pairs===CONFIG.totalPairs) setTimeout(showWin,500);
+      if(state.pairs===CONFIG.totalPairs) setTimeout(showWin,900);
     } else {
       state.points=Math.max(0,state.points-CONFIG.penaltyPerMiss); updateStats();
       setTimeout(()=>{ if(state.first) flip(state.first,false); if(state.second) flip(state.second,false); resetSelection(); },CONFIG.mismatchDelay);
@@ -319,7 +401,7 @@ img{display:block;pointer-events:none;-webkit-user-drag:none}
   }
 
   function startGame() {
-    resetState(); state.deck=buildDeck(); updateStats(); dom.win.hidden=true; showScreen(dom.game); render();
+    resetState(); state.deck=buildDeck(); updateStats(); showValueMessage(null); dom.win.hidden=true; showScreen(dom.game); render();
   }
 
   function showWin() {
