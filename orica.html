@@ -254,23 +254,53 @@ img{display:block;pointer-events:none;-webkit-user-drag:none}
   const VALUE_MESSAGES = Object.freeze({
     integridad: {
       title: "INTEGRIDAD",
-      phrase: "Cuidar lo nuestro y respetar lo ajeno."
+      phrases: [
+        "Protejo los equipos e instalaciones que compartimos.",
+        "Devuelvo lo que no me pertenece.",
+        "Reporto y reconozco cualquier falla de inmediato.",
+        "No callo ante malas prácticas.",
+        "Digo la verdad sobre un error operativo."
+      ]
     },
     respeto: {
       title: "RESPETO",
-      phrase: "Promover un buen ambiente de trabajo. El hostigamiento nunca es una broma."
+      phrases: [
+        "Cuido mis palabras e interacciones.",
+        "Mantengo en orden los vestidores como me gustaría encontrarlos.",
+        "Llego puntual para el cambio de turno.",
+        "Presto atención a la opinión de un compañero(a).",
+        "Aviso a tiempo a mi team leader."
+      ]
     },
     equipo: {
       title: "JUNTOS",
-      phrase: "Trabajo en equipo y cero complicidad en malas prácticas."
+      phrases: [
+        "Coopero en los proyectos A3.",
+        "Juntos mantenemos el área ordenada y limpia.",
+        "Celebro los logros del equipo.",
+        "Comparto mis conocimientos y buenas prácticas.",
+        "Auxilio a mis compañeros si lo necesitan."
+      ]
     },
     seguridad: {
       title: "SEGURIDAD",
-      phrase: "Regresar seguros a casa cada día: reporto peligros, no me arriesgo ni a los demás."
+      phrases: [
+        "Uso mis EPPs siempre.",
+        "Detengo a mi compañero si observo un trabajo inseguro.",
+        "Freno un trabajo si es inseguro.",
+        "Identifico y reporto Take5.",
+        "Usar cinturón correctamente los buses de transporte."
+      ]
     },
     excelencia: {
       title: "EXCELENCIA",
-      phrase: "Dar lo mejor de mí y asegurar la excelencia en mi trabajo."
+      phrases: [
+        "Realizo Simple Kaizen para la calidad de las operaciones.",
+        "Respeto los procesos de producción.",
+        "Propongo mejoras continuas para los procesos.",
+        "Verifico dos veces la calidad del producto.",
+        "Completo todas mis capacitaciones y entrenamientos."
+      ]
     }
   });
 
@@ -312,9 +342,15 @@ img{display:block;pointer-events:none;-webkit-user-drag:none}
 
   function showValueMessage(valueId=null) {
     const value=valueId ? VALUE_MESSAGES[valueId] : null;
+    let phrase="Encuentra un par para descubrir su valor";
+
+    if(value && Array.isArray(value.phrases) && value.phrases.length) {
+      phrase=value.phrases[Math.floor(Math.random()*value.phrases.length)];
+    }
+
     dom.valueTitle.hidden=!value;
     dom.valueTitle.textContent=value ? value.title : "";
-    dom.valuePhrase.textContent=value ? value.phrase : "Encuentra un par para descubrir su valor";
+    dom.valuePhrase.textContent=phrase;
     dom.valueMessage.classList.toggle("initial",!value);
     dom.valueMessage.classList.remove("animate");
     void dom.valueMessage.offsetWidth;
