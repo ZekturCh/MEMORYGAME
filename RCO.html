@@ -1,0 +1,714 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#003b70">
+<title>ORICA · Ordena el camerino</title>
+<style>
+:root{
+  --navy:#003b70;
+  --navy-2:#062e5c;
+  --blue:#009fe3;
+  --blue-2:#28b7ed;
+  --ice:#eaf8ff;
+  --white:#ffffff;
+  --mint:#8cf0d3;
+  --danger:#ff5d6c;
+  --yellow:#ffc94a;
+  --panel:rgba(255,255,255,.12);
+  --line:rgba(255,255,255,.22);
+  --shadow:0 22px 55px rgba(0,25,58,.30);
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-right:env(safe-area-inset-right,0px);
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+  --safe-left:env(safe-area-inset-left,0px);
+}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#01325f}
+body{
+  font-family:Inter,Segoe UI,Arial,sans-serif;
+  color:#fff;
+  -webkit-tap-highlight-color:transparent;
+  user-select:none;
+  overscroll-behavior:none;
+  background:
+    radial-gradient(circle at 12% 10%,rgba(77,203,248,.38),transparent 28%),
+    radial-gradient(circle at 85% 78%,rgba(17,151,218,.28),transparent 30%),
+    linear-gradient(145deg,#00528e 0%,#003b70 48%,#01284f 100%);
+}
+body:before{
+  content:"";
+  position:fixed;inset:-25%;
+  pointer-events:none;opacity:.18;
+  background:repeating-radial-gradient(circle at 50% 52%,transparent 0 40px,rgba(123,220,255,.55) 41px 45px,transparent 46px 82px);
+}
+button{font:inherit}
+#app{
+  position:relative;width:100%;height:100%;
+  padding:calc(10px + var(--safe-top)) calc(12px + var(--safe-right)) calc(10px + var(--safe-bottom)) calc(12px + var(--safe-left));
+  display:flex;flex-direction:column;gap:10px;
+}
+.topbar{
+  flex:0 0 auto;
+  min-height:74px;
+  display:grid;
+  grid-template-columns:minmax(135px,1fr) auto minmax(62px,1fr);
+  align-items:center;
+  gap:10px;
+  padding:9px 12px;
+  border:1px solid var(--line);
+  border-radius:22px;
+  background:rgba(0,44,86,.64);
+  box-shadow:0 12px 30px rgba(0,26,58,.23);
+  backdrop-filter:blur(12px);
+}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.brand-symbol{position:relative;width:52px;height:52px;flex:0 0 52px}
+.brand-symbol i{
+  position:absolute;left:6px;top:17px;width:40px;height:16px;border-radius:999px;
+  background:linear-gradient(90deg,#11aee8,#0068ae);
+  transform-origin:center;
+  box-shadow:inset 0 1px 2px rgba(255,255,255,.45),0 5px 10px rgba(0,23,50,.20)
+}
+.brand-symbol i:nth-child(1){transform:rotate(38deg)}
+.brand-symbol i:nth-child(2){transform:rotate(-38deg)}
+.brand-symbol i:nth-child(3){width:34px;left:9px;transform:rotate(90deg);background:linear-gradient(90deg,#0068ae,#00528e)}
+.brand-copy{min-width:0;line-height:1}
+.brand-copy strong{display:block;font-size:20px;letter-spacing:.03em}
+.brand-copy span{display:block;margin-top:5px;color:#bfeeff;font-size:9px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;white-space:nowrap}
+.stats{display:flex;align-items:center;justify-content:center;gap:clamp(15px,4vw,42px)}
+.stat{display:flex;flex-direction:column;align-items:center;line-height:1}
+.stat b{font-size:clamp(20px,2.8vw,28px)}
+.stat span{margin-top:5px;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#bfeeff;font-weight:800}
+.actions{justify-self:end}
+.btn{
+  min-width:48px;min-height:48px;padding:10px 15px;
+  border:1px solid rgba(255,255,255,.26);border-radius:999px;
+  color:#fff;background:rgba(255,255,255,.10);
+  font-weight:900;cursor:pointer;transition:transform .14s ease,filter .14s ease;
+}
+.btn:active{transform:scale(.95)}
+.game-shell{
+  position:relative;flex:1 1 auto;min-height:0;overflow:hidden;
+  display:flex;flex-direction:column;
+  border:1px solid rgba(255,255,255,.18);border-radius:27px;
+  background:linear-gradient(145deg,rgba(255,255,255,.12),rgba(255,255,255,.055));
+  box-shadow:inset 0 0 70px rgba(0,22,49,.22),0 18px 40px rgba(0,20,45,.16);
+  backdrop-filter:blur(8px);
+}
+.intro{
+  flex:0 0 auto;
+  display:flex;align-items:center;justify-content:space-between;gap:14px;
+  padding:12px 17px;
+  border-bottom:1px solid rgba(255,255,255,.13);
+  background:linear-gradient(90deg,rgba(0,58,111,.74),rgba(0,105,164,.24));
+}
+.intro-copy{min-width:0}
+.intro h1{margin:0;font-size:clamp(16px,2.2vw,24px);letter-spacing:.01em}
+.intro p{margin:4px 0 0;color:#d9f5ff;font-size:clamp(11px,1.3vw,14px);line-height:1.35}
+.demo-pill{
+  flex:0 0 auto;padding:7px 10px;border-radius:999px;
+  border:1px solid rgba(132,230,255,.40);background:rgba(0,159,227,.16);
+  color:#aeeaff;font-size:9px;font-weight:900;letter-spacing:.12em;text-transform:uppercase
+}
+.scene-wrap{position:relative;flex:1 1 auto;min-height:0;padding:12px}
+.scene{
+  position:relative;width:100%;height:100%;min-height:360px;overflow:hidden;
+  border-radius:21px;border:1px solid rgba(255,255,255,.18);
+  background:
+    linear-gradient(rgba(255,255,255,.035),rgba(255,255,255,.015)),
+    linear-gradient(180deg,#7e9bad 0 13%,#b9c7cd 13% 58%,#657d89 58% 61%,#394f5a 61% 100%);
+  box-shadow:inset 0 0 60px rgba(0,15,35,.25);
+}
+.scene:before{
+  content:"";
+  position:absolute;left:0;right:0;bottom:0;height:39%;
+  opacity:.38;pointer-events:none;
+  background:
+    linear-gradient(150deg,transparent 0 48%,rgba(255,255,255,.13) 49% 50%,transparent 51% 100%),
+    repeating-linear-gradient(90deg,rgba(255,255,255,.08) 0 1px,transparent 1px 90px);
+}
+.scene:after{
+  content:"";
+  position:absolute;left:0;right:0;top:11%;height:4px;
+  background:linear-gradient(90deg,transparent,#dff8ff 18%,#fff 50%,#dff8ff 82%,transparent);
+  opacity:.65;filter:blur(.4px);box-shadow:0 0 25px rgba(255,255,255,.8)
+}
+.photo-label{
+  position:absolute;z-index:2;left:14px;bottom:12px;padding:7px 9px;
+  border:1px solid rgba(255,255,255,.20);border-radius:9px;
+  background:rgba(1,38,72,.64);color:#cfefff;font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+  pointer-events:none
+}
+.bench{
+  position:absolute;z-index:3;left:18%;right:17%;bottom:18%;height:11%;
+  border-radius:10px 10px 5px 5px;
+  background:linear-gradient(180deg,#936b46,#61442f);
+  box-shadow:0 10px 0 #3b2a20,0 16px 18px rgba(0,0,0,.25),inset 0 2px 0 rgba(255,255,255,.25);
+}
+.bench:before,.bench:after{
+  content:"";position:absolute;top:100%;width:8px;height:62%;background:#263640;border-radius:0 0 3px 3px
+}
+.bench:before{left:10%}.bench:after{right:10%}
+.locker-bank{
+  position:absolute;z-index:4;left:7%;right:7%;top:17%;height:44%;
+  display:grid;grid-template-columns:repeat(3,1fr);gap:2.4%
+}
+.locker{
+  position:relative;min-width:0;overflow:visible;border-radius:8px;
+  background:linear-gradient(180deg,#d8e0e4,#91a4ad);
+  border:2px solid rgba(55,81,94,.72);
+  box-shadow:0 8px 14px rgba(0,22,38,.22),inset 0 1px 0 rgba(255,255,255,.65);
+  transition:filter .18s ease,transform .18s ease,box-shadow .18s ease;
+}
+.locker:before{
+  content:"";position:absolute;inset:6px;border:1px solid rgba(50,76,88,.38);border-radius:5px;pointer-events:none
+}
+.locker-name{
+  position:absolute;z-index:5;left:10%;right:10%;top:8%;
+  padding:6px 5px;border-radius:5px;text-align:center;
+  color:#06325a;background:#f7fbfd;border:1px solid #91a9b4;
+  font-size:clamp(9px,1.25vw,14px);font-weight:900;text-transform:uppercase;
+  box-shadow:0 2px 5px rgba(0,20,35,.12)
+}
+.locker-code{display:block;margin-top:2px;color:#5f7782;font-size:.72em;letter-spacing:.1em}
+.vents{
+  position:absolute;left:19%;right:19%;top:29%;height:15%;
+  background:repeating-linear-gradient(180deg,#6e838d 0 3px,transparent 3px 7px);opacity:.7
+}
+.handle{
+  position:absolute;right:10%;top:55%;width:10%;height:20%;min-width:6px;
+  border-radius:4px;background:#647983;box-shadow:inset 0 0 0 1px rgba(0,0,0,.18)
+}
+.locker-door{
+  position:absolute;z-index:3;inset:0;border-radius:6px;
+  transform-origin:left center;transform:perspective(600px) rotateY(-68deg);
+  background:linear-gradient(95deg,#dbe4e8,#9aacb4);
+  border:1px solid #6f858f;
+  box-shadow:9px 8px 16px rgba(0,18,32,.32);
+  transition:transform .55s cubic-bezier(.2,.8,.25,1),box-shadow .3s ease
+}
+.locker-door:before{
+  content:"";position:absolute;inset:8px;border:1px solid rgba(66,90,100,.26);border-radius:4px
+}
+.locker.closed .locker-door{transform:perspective(600px) rotateY(0deg);box-shadow:inset 0 0 0 1px rgba(255,255,255,.24),0 5px 10px rgba(0,20,35,.18)}
+.locker.correct{box-shadow:0 0 0 3px rgba(140,240,211,.85),0 0 28px rgba(140,240,211,.55),0 8px 16px rgba(0,20,35,.22)}
+.locker.wrong{animation:lockerWrong .48s ease}
+.locker.targeted{filter:brightness(1.07);box-shadow:0 0 0 3px rgba(80,205,255,.88),0 0 28px rgba(52,191,255,.60)}
+@keyframes lockerWrong{0%,100%{transform:translateX(0)}25%{transform:translateX(-7px)}50%{transform:translateX(6px)}75%{transform:translateX(-4px)}}
+.objects-layer{position:absolute;inset:0;z-index:10;pointer-events:none}
+.object{
+  --dx:0px;--dy:0px;
+  position:absolute;left:var(--x);top:var(--y);
+  width:clamp(72px,10vw,118px);height:clamp(68px,9vw,110px);
+  transform:translate(var(--dx),var(--dy));
+  display:flex;align-items:center;justify-content:center;
+  pointer-events:auto;touch-action:none;cursor:grab;
+  border:1px solid rgba(255,255,255,.28);border-radius:18px;
+  background:linear-gradient(145deg,rgba(255,255,255,.92),rgba(213,243,255,.88));
+  box-shadow:0 13px 24px rgba(0,20,36,.27),inset 0 1px 0 #fff;
+  transition:box-shadow .18s ease,filter .18s ease,transform .24s cubic-bezier(.2,.75,.25,1),opacity .22s ease;
+  will-change:transform,left,top;
+}
+.object svg{width:72%;height:65%;overflow:visible;pointer-events:none}
+.object .tag{
+  position:absolute;left:50%;bottom:5px;transform:translateX(-50%);
+  max-width:92%;padding:3px 6px;border-radius:999px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  background:#003b70;color:#fff;font-size:clamp(7px,.78vw,9px);font-weight:900;letter-spacing:.05em
+}
+.object.selected{
+  box-shadow:0 0 0 4px rgba(52,195,255,.92),0 0 28px rgba(58,202,255,.78),0 14px 25px rgba(0,20,36,.28);
+  filter:brightness(1.05)
+}
+.object.dragging{z-index:40;cursor:grabbing;transition:none;filter:brightness(1.08);box-shadow:0 0 0 4px rgba(76,211,255,.95),0 0 34px rgba(45,198,255,.85),0 20px 30px rgba(0,20,36,.35)}
+.object.returning{transition:transform .36s cubic-bezier(.2,.8,.25,1)}
+.object.placed{pointer-events:none;opacity:0}
+.object.wrong{animation:itemWrong .42s ease}
+@keyframes itemWrong{0%,100%{filter:brightness(1)}45%{filter:drop-shadow(0 0 10px rgba(255,75,91,.9)) brightness(1.06)}}
+.object[data-id="walkman"]{--x:18%;--y:72%;--mx:11%;--my:73%}
+.object[data-id="glasses"]{--x:46%;--y:67%;--mx:38%;--my:75%}
+.object[data-id="badge"]{--x:72%;--y:73%;--mx:67%;--my:73%}
+.feedback{
+  flex:0 0 auto;min-height:70px;
+  margin:0 12px 12px;padding:11px 15px;
+  display:flex;align-items:center;justify-content:center;text-align:center;
+  border:1px solid rgba(255,255,255,.17);border-radius:18px;
+  background:linear-gradient(145deg,rgba(0,54,104,.52),rgba(0,107,165,.22));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08)
+}
+.feedback-copy{max-width:min(900px,95%)}
+.feedback-title{margin:0 0 4px;color:#8be4ff;font-size:clamp(15px,1.9vw,21px);font-weight:900;letter-spacing:.07em;text-transform:uppercase}
+.feedback-text{margin:0;color:#fff;font-size:clamp(11px,1.35vw,15px);line-height:1.35;font-weight:650}
+.feedback.success{background:linear-gradient(145deg,rgba(0,96,91,.58),rgba(0,143,122,.26))}
+.feedback.success .feedback-title{color:#a8f5df}
+.feedback.error{background:linear-gradient(145deg,rgba(104,25,48,.64),rgba(141,30,53,.26))}
+.feedback.error .feedback-title{color:#ffb1ba}
+.feedback.animate .feedback-copy{animation:feedbackIn .36s cubic-bezier(.2,.75,.25,1) both}
+@keyframes feedbackIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.overlay{
+  position:absolute;inset:0;z-index:80;
+  display:flex;align-items:center;justify-content:center;padding:22px;
+  background:rgba(0,27,57,.78);backdrop-filter:blur(10px)
+}
+.overlay[hidden]{display:none}
+.modal{
+  width:min(520px,92vw);padding:32px 28px;text-align:center;
+  border:1px solid rgba(255,255,255,.27);border-radius:28px;
+  background:linear-gradient(155deg,rgba(4,79,133,.98),rgba(1,42,80,.99));
+  box-shadow:var(--shadow)
+}
+.modal-icon{
+  width:82px;height:82px;margin:0 auto 13px;border-radius:50%;
+  display:grid;place-items:center;background:rgba(140,240,211,.12);
+  border:2px solid rgba(140,240,211,.70);font-size:38px;box-shadow:0 0 25px rgba(140,240,211,.25)
+}
+.modal .eyebrow{margin:0 0 6px;color:#9cebd8;font-size:10px;font-weight:900;letter-spacing:.15em;text-transform:uppercase}
+.modal h2{margin:0 0 9px;font-size:clamp(26px,4vw,38px)}
+.modal p{margin:0 0 20px;color:#d8f4ff;line-height:1.45}
+.primary{
+  padding:12px 22px;border:1px solid #fff;border-radius:999px;
+  background:linear-gradient(180deg,#fff,#dff6ff);color:var(--navy);
+  font-weight:900;cursor:pointer
+}
+.hint{
+  position:absolute;z-index:18;right:12px;bottom:11px;width:min(290px,42%);
+  padding:8px 10px;border-radius:10px;
+  border:1px solid rgba(255,255,255,.16);background:rgba(0,42,80,.60);
+  color:#d9f5ff;font-size:9px;line-height:1.35;pointer-events:none
+}
+.hint b{color:#fff}
+@media(max-width:720px){
+  #app{gap:7px;padding:calc(7px + var(--safe-top)) calc(7px + var(--safe-right)) calc(7px + var(--safe-bottom)) calc(7px + var(--safe-left))}
+  .topbar{min-height:63px;padding:7px 8px;border-radius:18px;grid-template-columns:48px 1fr 48px}
+  .brand-copy{display:none}.brand-symbol{width:43px;height:43px;transform:scale(.84);transform-origin:left center}
+  .stats{gap:15px}.stat b{font-size:19px}.stat span{font-size:7px}
+  .actions .btn{min-width:44px;min-height:44px;padding:9px 11px}
+  .game-shell{border-radius:20px}
+  .intro{padding:9px 11px;gap:8px}.intro h1{font-size:15px}.intro p{font-size:10px}.demo-pill{font-size:7px;padding:6px 7px}
+  .scene-wrap{padding:8px}
+  .scene{min-height:0}
+  .locker-bank{left:4%;right:4%;top:15%;height:44%;gap:2%}
+  .locker-name{font-size:8px;left:7%;right:7%;padding:4px 2px}
+  .object{left:var(--mx);top:var(--my);width:27%;height:17%;max-width:100px;max-height:95px;border-radius:15px}
+  .bench{left:8%;right:8%;bottom:18%;height:9%}
+  .feedback{min-height:61px;margin:0 8px 8px;padding:8px 10px;border-radius:14px}
+  .feedback-title{font-size:14px}.feedback-text{font-size:10px}
+  .photo-label{font-size:7px;left:8px;bottom:8px}
+  .hint{right:8px;bottom:8px;width:46%;font-size:7px;padding:6px 7px}
+}
+@media(max-height:650px){
+  .topbar{min-height:54px}.brand-symbol{transform:scale(.78);transform-origin:left center}.brand-copy span{display:none}
+  .intro{padding:7px 11px}.intro p{display:none}
+  .feedback{min-height:50px;padding:6px 10px}.feedback-title{margin-bottom:2px;font-size:13px}.feedback-text{font-size:9px}
+}
+@media(prefers-reduced-motion:reduce){
+  .object,.locker,.locker-door,.btn{transition:none!important}
+  .locker.wrong,.object.wrong,.feedback.animate .feedback-copy{animation:none!important}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <div class="brand" aria-label="ORICA">
+      <div class="brand-symbol" aria-hidden="true"><i></i><i></i><i></i></div>
+      <div class="brand-copy"><strong>ORICA</strong><span>Dinámica RRHH · Orden y cuidado</span></div>
+    </div>
+
+    <div class="stats" aria-live="polite">
+      <div class="stat"><b id="progress">0/3</b><span>Objetos</span></div>
+      <div class="stat"><b id="attempts">0</b><span>Intentos</span></div>
+      <div class="stat"><b id="points">0</b><span>Puntos</span></div>
+    </div>
+
+    <div class="actions">
+      <button id="restart" class="btn" type="button" aria-label="Reiniciar juego">↻</button>
+    </div>
+  </header>
+
+  <main class="game-shell">
+    <section class="intro">
+      <div class="intro-copy">
+        <h1>Ordena el camerino</h1>
+        <p>Identifica los objetos fuera de lugar y devuélvelos al casillero correcto.</p>
+      </div>
+      <div class="demo-pill">Demo visual</div>
+    </section>
+
+    <div class="scene-wrap">
+      <section id="scene" class="scene" aria-label="Camerino de empleados">
+        <div class="photo-label">Escena provisional · aquí irá la foto real</div>
+
+        <div class="locker-bank">
+          <div class="locker" data-owner="raul" tabindex="0" role="button" aria-label="Casillero de Raúl Castro">
+            <div class="locker-door"></div>
+            <div class="locker-name">Raúl Castro<span class="locker-code">RC · L-07</span></div>
+            <div class="vents"></div><div class="handle"></div>
+          </div>
+          <div class="locker" data-owner="rojas" tabindex="0" role="button" aria-label="Casillero de M. Rojas">
+            <div class="locker-door"></div>
+            <div class="locker-name">M. Rojas<span class="locker-code">MR · L-08</span></div>
+            <div class="vents"></div><div class="handle"></div>
+          </div>
+          <div class="locker" data-owner="quispe" tabindex="0" role="button" aria-label="Casillero de A. Quispe">
+            <div class="locker-door"></div>
+            <div class="locker-name">A. Quispe<span class="locker-code">AQ · L-09</span></div>
+            <div class="vents"></div><div class="handle"></div>
+          </div>
+        </div>
+
+        <div class="bench"></div>
+
+        <div class="objects-layer">
+          <button class="object" data-id="walkman" data-owner="raul" type="button" aria-label="Walkman marcado R. Castro">
+            <svg viewBox="0 0 120 90" aria-hidden="true">
+              <defs><linearGradient id="wm" x1="0" x2="1"><stop stop-color="#294b65"/><stop offset="1" stop-color="#0d2a40"/></linearGradient></defs>
+              <rect x="21" y="19" width="77" height="57" rx="8" fill="url(#wm)" stroke="#07233a" stroke-width="4"/>
+              <rect x="31" y="28" width="36" height="25" rx="3" fill="#b5ddeb" stroke="#6a94a5" stroke-width="2"/>
+              <circle cx="82" cy="42" r="9" fill="#dce7ea" stroke="#6f8791" stroke-width="3"/>
+              <rect x="32" y="59" width="48" height="6" rx="3" fill="#009fe3"/>
+              <path d="M38 17 C43 0 78 0 85 18" fill="none" stroke="#063d66" stroke-width="6" stroke-linecap="round"/>
+              <path d="M37 14 C28 18 25 30 30 39M86 14 C96 18 99 30 94 39" fill="none" stroke="#009fe3" stroke-width="5" stroke-linecap="round"/>
+            </svg>
+            <span class="tag">R. CASTRO</span>
+          </button>
+
+          <button class="object" data-id="glasses" data-owner="rojas" type="button" aria-label="Lentes de seguridad marcados M. Rojas">
+            <svg viewBox="0 0 120 90" aria-hidden="true">
+              <path d="M13 34 Q28 17 51 31 L48 52 Q28 63 15 48 Z" fill="#d7f7ff" stroke="#087cb0" stroke-width="5"/>
+              <path d="M107 34 Q92 17 69 31 L72 52 Q92 63 105 48 Z" fill="#d7f7ff" stroke="#087cb0" stroke-width="5"/>
+              <path d="M50 35 Q60 27 70 35" fill="none" stroke="#087cb0" stroke-width="5" stroke-linecap="round"/>
+              <path d="M15 34 L4 28M105 34 L116 28" stroke="#063d66" stroke-width="5" stroke-linecap="round"/>
+            </svg>
+            <span class="tag">M. ROJAS</span>
+          </button>
+
+          <button class="object" data-id="badge" data-owner="quispe" type="button" aria-label="Fotocheck marcado A. Quispe">
+            <svg viewBox="0 0 120 90" aria-hidden="true">
+              <path d="M54 8 C38 5 32 16 34 28" fill="none" stroke="#0b4d74" stroke-width="6" stroke-linecap="round"/>
+              <rect x="29" y="24" width="62" height="56" rx="7" fill="#ffffff" stroke="#087cb0" stroke-width="4"/>
+              <rect x="38" y="33" width="20" height="20" rx="10" fill="#8edbf7"/>
+              <path d="M37 65 H82" stroke="#9cb4bf" stroke-width="5" stroke-linecap="round"/>
+              <path d="M66 38 H82M66 47 H79" stroke="#009fe3" stroke-width="4" stroke-linecap="round"/>
+            </svg>
+            <span class="tag">A. QUISPE</span>
+          </button>
+        </div>
+
+        <div class="hint"><b>Cómo jugar:</b> toca un objeto para resaltarlo y arrástralo al casillero que corresponda. También puedes seleccionar el objeto y luego tocar el casillero.</div>
+      </section>
+    </div>
+
+    <section id="feedback" class="feedback animate" aria-live="polite" aria-atomic="true">
+      <div class="feedback-copy">
+        <h2 id="feedbackTitle" class="feedback-title">Encuentra lo que está fuera de lugar</h2>
+        <p id="feedbackText" class="feedback-text">Los nombres de cada objeto te darán una pista sobre dónde deben guardarse.</p>
+      </div>
+    </section>
+  </main>
+
+  <div id="win" class="overlay" hidden>
+    <div class="modal">
+      <div class="modal-icon">✓</div>
+      <p class="eyebrow">Actividad completada</p>
+      <h2>Área organizada</h2>
+      <p id="summary">Guardaste todos los objetos en el casillero correcto.</p>
+      <button id="playAgain" class="primary" type="button">Jugar de nuevo</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  var state = {
+    selected:null,
+    solved:0,
+    attempts:0,
+    points:0,
+    drag:null,
+    suppressClick:false
+  };
+
+  var dom = {
+    scene:document.getElementById('scene'),
+    progress:document.getElementById('progress'),
+    attempts:document.getElementById('attempts'),
+    points:document.getElementById('points'),
+    restart:document.getElementById('restart'),
+    feedback:document.getElementById('feedback'),
+    feedbackTitle:document.getElementById('feedbackTitle'),
+    feedbackText:document.getElementById('feedbackText'),
+    win:document.getElementById('win'),
+    summary:document.getElementById('summary'),
+    playAgain:document.getElementById('playAgain')
+  };
+
+  var names = {
+    raul:'RAÚL CASTRO',
+    rojas:'M. ROJAS',
+    quispe:'A. QUISPE'
+  };
+
+  function objects(){
+    return Array.prototype.slice.call(document.querySelectorAll('.object'));
+  }
+
+  function lockers(){
+    return Array.prototype.slice.call(document.querySelectorAll('.locker'));
+  }
+
+  function updateStats(){
+    dom.progress.textContent = state.solved + '/3';
+    dom.attempts.textContent = String(state.attempts);
+    dom.points.textContent = String(state.points);
+  }
+
+  function setFeedback(type,title,text){
+    dom.feedback.classList.remove('success','error','animate');
+    if(type){ dom.feedback.classList.add(type); }
+    dom.feedbackTitle.textContent = title;
+    dom.feedbackText.textContent = text;
+    void dom.feedback.offsetWidth;
+    dom.feedback.classList.add('animate');
+  }
+
+  function selectItem(item){
+    if(!item || item.classList.contains('placed')) return;
+    objects().forEach(function(el){ el.classList.toggle('selected',el === item); });
+    lockers().forEach(function(el){ el.classList.remove('targeted'); });
+    state.selected = item;
+    setFeedback('', 'OBJETO SELECCIONADO', 'Ahora arrástralo o toca el casillero correcto.');
+  }
+
+  function lockerAtPoint(x,y){
+    var hit = null;
+    lockers().forEach(function(locker){
+      var r = locker.getBoundingClientRect();
+      if(x >= r.left && x <= r.right && y >= r.top && y <= r.bottom){ hit = locker; }
+    });
+    return hit;
+  }
+
+  function clearLockerHighlights(){
+    lockers().forEach(function(el){ el.classList.remove('targeted'); });
+  }
+
+  function highlightLockerAtPoint(x,y){
+    var hit = lockerAtPoint(x,y);
+    lockers().forEach(function(el){ el.classList.toggle('targeted',el === hit); });
+  }
+
+  function settleItem(item){
+    item.classList.remove('dragging');
+    item.classList.add('returning');
+    item.style.setProperty('--dx','0px');
+    item.style.setProperty('--dy','0px');
+    setTimeout(function(){ item.classList.remove('returning'); },380);
+  }
+
+  function wrongAttempt(item,locker){
+    state.attempts += 1;
+    state.points = Math.max(0,state.points - 25);
+    updateStats();
+    locker.classList.remove('wrong');
+    item.classList.remove('wrong');
+    void locker.offsetWidth;
+    locker.classList.add('wrong');
+    item.classList.add('wrong');
+    setFeedback('error','ESE NO ES SU CASILLERO','Revisa el nombre del objeto y compáralo con la etiqueta del casillero.');
+    setTimeout(function(){ locker.classList.remove('wrong'); item.classList.remove('wrong'); },560);
+    settleItem(item);
+  }
+
+  function correctAttempt(item,locker,fromDrag){
+    state.attempts += 1;
+    state.solved += 1;
+    state.points += 100;
+    updateStats();
+
+    clearLockerHighlights();
+    item.classList.remove('dragging','selected');
+    locker.classList.add('correct');
+
+    if(fromDrag){
+      item.animate(
+        [
+          {opacity:1,transform:getComputedStyle(item).transform},
+          {opacity:.08,transform:getComputedStyle(item).transform + ' scale(.32)'}
+        ],
+        {duration:360,easing:'cubic-bezier(.2,.78,.25,1)',fill:'forwards'}
+      ).onfinish = function(){
+        item.classList.add('placed');
+        item.style.opacity = '0';
+      };
+    }else{
+      var a = item.getBoundingClientRect();
+      var b = locker.getBoundingClientRect();
+      var dx = (b.left+b.width/2) - (a.left+a.width/2);
+      var dy = (b.top+b.height/2) - (a.top+a.height/2);
+      item.animate(
+        [
+          {opacity:1,transform:'translate(0px,0px) scale(1)'},
+          {opacity:.08,transform:'translate('+dx+'px,'+dy+'px) scale(.32)'}
+        ],
+        {duration:470,easing:'cubic-bezier(.2,.78,.25,1)',fill:'forwards'}
+      ).onfinish = function(){
+        item.classList.add('placed');
+        item.style.opacity = '0';
+      };
+    }
+
+    setTimeout(function(){
+      locker.classList.add('closed');
+      setTimeout(function(){ locker.classList.remove('correct'); },650);
+    },180);
+
+    setFeedback('success','CORRECTO · '+names[item.dataset.owner],'Objeto guardado. El casillero queda cerrado y asegurado.');
+    state.selected = null;
+
+    if(state.solved === 3){
+      setTimeout(showWin,900);
+    }
+  }
+
+  function attemptPlace(item,locker,fromDrag){
+    if(!item || !locker || item.classList.contains('placed')) return;
+    if(item.dataset.owner === locker.dataset.owner){
+      correctAttempt(item,locker,fromDrag);
+    }else{
+      wrongAttempt(item,locker);
+    }
+  }
+
+  function showWin(){
+    dom.summary.textContent = 'Completaste la escena en '+state.attempts+' intentos y obtuviste '+state.points+' puntos.';
+    dom.win.hidden = false;
+  }
+
+  function resetGame(){
+    state.selected = null;
+    state.solved = 0;
+    state.attempts = 0;
+    state.points = 0;
+    state.drag = null;
+    state.suppressClick = false;
+    updateStats();
+    dom.win.hidden = true;
+
+    objects().forEach(function(item){
+      if(item.getAnimations){ item.getAnimations().forEach(function(a){ a.cancel(); }); }
+      item.classList.remove('selected','dragging','returning','placed','wrong');
+      item.style.removeProperty('opacity');
+      item.style.setProperty('--dx','0px');
+      item.style.setProperty('--dy','0px');
+    });
+
+    lockers().forEach(function(locker){
+      locker.classList.remove('closed','correct','wrong','targeted');
+    });
+
+    setFeedback('','ENCUENTRA LO QUE ESTÁ FUERA DE LUGAR','Los nombres de cada objeto te darán una pista sobre dónde deben guardarse.');
+  }
+
+  objects().forEach(function(item){
+    item.addEventListener('pointerdown',function(e){
+      if(item.classList.contains('placed')) return;
+      e.preventDefault();
+      selectItem(item);
+      state.suppressClick = false;
+      state.drag = {
+        item:item,
+        pointerId:e.pointerId,
+        startX:e.clientX,
+        startY:e.clientY,
+        dx:0,
+        dy:0,
+        moved:false
+      };
+      item.setPointerCapture(e.pointerId);
+      item.classList.add('dragging');
+    });
+
+    item.addEventListener('pointermove',function(e){
+      if(!state.drag || state.drag.item !== item || state.drag.pointerId !== e.pointerId) return;
+      e.preventDefault();
+      var dx = e.clientX - state.drag.startX;
+      var dy = e.clientY - state.drag.startY;
+      state.drag.dx = dx;
+      state.drag.dy = dy;
+      if(Math.hypot(dx,dy) > 7){ state.drag.moved = true; }
+      item.style.setProperty('--dx',dx+'px');
+      item.style.setProperty('--dy',dy+'px');
+      highlightLockerAtPoint(e.clientX,e.clientY);
+    });
+
+    function endDrag(e){
+      if(!state.drag || state.drag.item !== item || state.drag.pointerId !== e.pointerId) return;
+      var moved = state.drag.moved;
+      var locker = lockerAtPoint(e.clientX,e.clientY);
+      state.drag = null;
+      clearLockerHighlights();
+
+      if(moved){
+        state.suppressClick = true;
+        if(locker){
+          attemptPlace(item,locker,true);
+        }else{
+          settleItem(item);
+          setFeedback('','OBJETO SELECCIONADO','Suelta el objeto dentro de un casillero para comprobarlo.');
+        }
+      }else{
+        item.classList.remove('dragging');
+        item.style.setProperty('--dx','0px');
+        item.style.setProperty('--dy','0px');
+      }
+    }
+
+    item.addEventListener('pointerup',endDrag);
+    item.addEventListener('pointercancel',function(e){
+      if(state.drag && state.drag.item === item){
+        state.drag = null;
+        clearLockerHighlights();
+        settleItem(item);
+      }
+    });
+
+    item.addEventListener('click',function(e){
+      if(state.suppressClick){
+        state.suppressClick = false;
+        e.preventDefault();
+        return;
+      }
+      selectItem(item);
+    });
+  });
+
+  lockers().forEach(function(locker){
+    function choose(){
+      if(state.selected && !state.selected.classList.contains('placed')){
+        attemptPlace(state.selected,locker,false);
+      }else{
+        setFeedback('','PRIMERO ELIGE UN OBJETO','Toca uno de los objetos fuera de lugar para iluminarlo.');
+      }
+    }
+    locker.addEventListener('click',choose);
+    locker.addEventListener('keydown',function(e){
+      if(e.key === 'Enter' || e.key === ' '){
+        e.preventDefault();
+        choose();
+      }
+    });
+  });
+
+  dom.restart.addEventListener('click',resetGame);
+  dom.playAgain.addEventListener('click',resetGame);
+
+  updateStats();
+})();
+</script>
+</body>
+</html>
