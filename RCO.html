@@ -115,7 +115,7 @@ img{display:block;max-width:100%;-webkit-user-drag:none}
   position:relative;min-width:0;min-height:0;overflow:hidden;border-radius:22px;border:1px solid rgba(255,255,255,.22);
   background:#082f59;box-shadow:0 16px 34px rgba(0,23,49,.25)
 }
-.scene-card img{width:100%;height:100%;object-fit:cover}
+.scene-card img{width:100%;height:100%;object-fit:contain;background:#082f59}
 .scene-placeholder{
   position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;
   text-align:center;padding:24px;background:
@@ -206,7 +206,7 @@ img{display:block;max-width:100%;-webkit-user-drag:none}
   .topbar{grid-template-columns:110px 1fr auto}
   .brand{font-size:17px}.brand .dot{width:26px;height:26px}
   .hud-item{min-width:60px;padding:6px}.hud-item b{font-size:16px}
-  .game-shell{grid-template-columns:1fr;grid-template-rows:minmax(190px,42%) minmax(0,1fr)}
+  .game-shell{grid-template-columns:1fr;grid-template-rows:minmax(240px,44%) minmax(0,1fr)}
   .challenge{padding:12px}
   .situation{margin:9px 0;padding:13px;font-size:14px}
   .answer-btn{min-height:62px}
@@ -217,7 +217,7 @@ img{display:block;max-width:100%;-webkit-user-drag:none}
   .brand{font-size:14px}.brand .dot{display:none}
   .progress-box{min-width:110px}
   .hud{gap:4px}.hud-item{min-width:52px;border-radius:10px}.hud-item span{display:none}
-  .game-shell{padding:7px;gap:7px;border-radius:19px;grid-template-rows:minmax(155px,35%) minmax(0,1fr)}
+  .game-shell{padding:7px;gap:7px;border-radius:19px;grid-template-rows:minmax(230px,42%) minmax(0,1fr)}
   .scene-card,.challenge{border-radius:15px}
   .scene-badge{left:8px;top:8px;padding:6px 9px;font-size:8px}
   .challenge h1{font-size:19px}
@@ -268,7 +268,7 @@ img{display:block;max-width:100%;-webkit-user-drag:none}
       <div class="brand"><span class="dot" aria-hidden="true"></span><span>ORICA</span></div>
       <div class="progress-box">
         <div class="progress-line"><div id="progressFill" class="progress-fill"></div></div>
-        <div id="progressText" class="progress-text">Situación 1 de 12</div>
+        <div id="progressText" class="progress-text">Situación 1 de 5</div>
       </div>
       <div class="hud">
         <div class="hud-item"><b id="score">0</b><span>Puntos</span></div>
@@ -331,7 +331,7 @@ img{display:block;max-width:100%;-webkit-user-drag:none}
       </div>
       <div class="end-stats">
         <div class="end-stat"><b id="finalScore">0</b><span>Puntos</span></div>
-        <div class="end-stat"><b id="finalCorrect">0/12</b><span>Correctas</span></div>
+        <div class="end-stat"><b id="finalCorrect">0/5</b><span>Correctas</span></div>
         <div class="end-stat"><b id="finalStreak">0</b><span>Mejor racha</span></div>
       </div>
       <div class="end-actions">
@@ -346,7 +346,7 @@ img{display:block;max-width:100%;-webkit-user-drag:none}
 (function(){
   "use strict";
 
-  var TOTAL_ROUNDS = 12;
+  var TOTAL_ROUNDS = 5;
 
   var SCENARIOS = [
     {
@@ -542,22 +542,8 @@ img{display:block;max-width:100%;-webkit-user-drag:none}
   }
 
   function buildDeck(){
-    var selected=[];
-    VALUES.forEach(function(value){
-      var positive=SCENARIOS.filter(function(s){return s.value===value && s.expected;});
-      var negative=SCENARIOS.filter(function(s){return s.value===value && !s.expected;});
-      if(positive.length) selected.push(pickOne(positive));
-      if(negative.length) selected.push(pickOne(negative));
-    });
-
-    var used={};
-    selected.forEach(function(s){used[s.id]=true;});
-
-    var remaining=shuffle(SCENARIOS.filter(function(s){return !used[s.id];}));
-    while(selected.length<TOTAL_ROUNDS && remaining.length){
-      selected.push(remaining.shift());
-    }
-    return shuffle(selected).slice(0,TOTAL_ROUNDS);
+    var illustrated=SCENARIOS.filter(function(s){return Boolean(s.image);});
+    return shuffle(illustrated).slice(0,TOTAL_ROUNDS);
   }
 
   function showScreen(screen){
