@@ -131,7 +131,7 @@ img{display:block;pointer-events:none;-webkit-user-drag:none}
   padding:clamp(18px,4vw,46px);pointer-events:none;
   opacity:0;visibility:hidden;transition:opacity .2s ease,visibility .2s ease;
 }
-.value-flash.show{opacity:1;visibility:visible}
+.value-flash.show{opacity:1;visibility:visible;pointer-events:auto}
 .value-flash-card{
   width:min(560px,88%);padding:clamp(24px,4vw,38px) clamp(22px,4vw,42px);
   text-align:center;border:1px solid rgba(255,255,255,.34);border-radius:26px;
@@ -158,6 +158,14 @@ img{display:block;pointer-events:none;-webkit-user-drag:none}
   border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.10);
   color:#b9f2ff;font-size:11px;font-weight:900;letter-spacing:.11em;text-transform:uppercase;
 }
+.value-flash-skip{
+  display:block;min-width:150px;margin:14px auto 0;padding:10px 18px;border-radius:999px;
+  border:1px solid rgba(255,255,255,.32);background:rgba(255,255,255,.12);color:#fff;
+  font-size:12px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;
+  transition:transform .12s ease,background .12s ease,opacity .12s ease;
+}
+.value-flash-skip:hover{background:rgba(255,255,255,.18)}
+.value-flash-skip:active{transform:scale(.97)}
 .card{
   position:relative;width:100%;height:100%;padding:0;border:0;background:transparent;cursor:pointer;perspective:1100px;
   filter:drop-shadow(0 9px 9px rgba(0,29,60,.30));
@@ -260,6 +268,7 @@ img{display:block;pointer-events:none;-webkit-user-drag:none}
           <h2 id="valueFlashTitle" class="value-flash-title"></h2>
           <p id="valueFlashPhrase" class="value-flash-phrase"></p>
           <span class="value-flash-found">✓ Valor descubierto</span>
+          <button id="valueFlashSkip" class="value-flash-skip" type="button">Continuar</button>
         </div>
       </div>
     </div>
@@ -303,6 +312,7 @@ img{display:block;pointer-events:none;-webkit-user-drag:none}
   const VALUE_MESSAGES = Object.freeze({
     integridad: {
       title: "INTEGRIDAD",
+      summary: "Cuidar lo nuestro y respetar lo ajeno.",
       phrases: [
         "Protejo los equipos e instalaciones que compartimos.",
         "Devuelvo lo que no me pertenece.",
@@ -313,6 +323,7 @@ img{display:block;pointer-events:none;-webkit-user-drag:none}
     },
     respeto: {
       title: "RESPETO",
+      summary: "Promover un buen ambiente de trabajo. El hostigamiento nunca es una broma.",
       phrases: [
         "Cuido mis palabras e interacciones.",
         "Mantengo en orden los vestidores como me gustaría encontrarlos.",
@@ -323,6 +334,7 @@ img{display:block;pointer-events:none;-webkit-user-drag:none}
     },
     equipo: {
       title: "JUNTOS",
+      summary: "Trabajo en equipo y cero complicidad en malas prácticas.",
       phrases: [
         "Coopero en los proyectos A3.",
         "Juntos mantenemos el área ordenada y limpia.",
@@ -333,6 +345,7 @@ img{display:block;pointer-events:none;-webkit-user-drag:none}
     },
     seguridad: {
       title: "SEGURIDAD",
+      summary: "Regresar seguros a casa cada día: reporto peligros, no me arriesgo ni a los demás.",
       phrases: [
         "Uso mis EPPs siempre.",
         "Detengo a mi compañero si observo un trabajo inseguro.",
@@ -343,6 +356,7 @@ img{display:block;pointer-events:none;-webkit-user-drag:none}
     },
     excelencia: {
       title: "EXCELENCIA",
+      summary: "Dar lo mejor de mí y asegurar la excelencia en mi trabajo.",
       phrases: [
         "Realizo Simple Kaizen para la calidad de las operaciones.",
         "Respeto los procesos de producción.",
@@ -360,10 +374,13 @@ img{display:block;pointer-events:none;-webkit-user-drag:none}
     pairs:$("pairs"), moves:$("moves"), points:$("points"), win:$("win"), summary:$("summary"),
     again:$("again"), menuBtn:$("menuBtn"), playPanel:$("playPanel"), valueMessage:$("valueMessage"),
     valueTitle:$("valueTitle"), valuePhrase:$("valuePhrase"), valueFlash:$("valueFlash"),
-    valueFlashTitle:$("valueFlashTitle"), valueFlashPhrase:$("valueFlashPhrase")
+    valueFlashTitle:$("valueFlashTitle"), valueFlashPhrase:$("valueFlashPhrase"),
+    valueFlashSkip:$("valueFlashSkip")
   };
 
   let valueFlashTimer=null;
+  let valueFlashShownAt=0;
+  let winTimer=null;
 
   function shuffle(input) {
     const arr=[...input];
@@ -400,8 +417,22 @@ img{display:block;pointer-events:none;-webkit-user-drag:none}
     valueFlashTimer=setTimeout(()=>{},240);
   }
 
+  function requestFastFlashClose() {
+    const elapsed=Date.now()-valueFlashShownAt;
+    const wait=Math.max(0,1000-elapsed);
+    clearTimeout(valueFlashTimer);
+    valueFlashTimer=setTimeout(()=>{
+      hideValueFlash();
+      if(state.pairs===CONFIG.totalPairs && dom.win.hidden) {
+        clearTimeout(winTimer);
+        winTimer=setTimeout(showWin,260);
+      }
+    },wait);
+  }
+
   function showValueFlash(title,phrase) {
     clearTimeout(valueFlashTimer);
+    valueFlashShownAt=Date.now();
     dom.valueFlashTitle.textContent=title;
     dom.valueFlashPhrase.textContent=phrase;
     dom.playPanel.classList.add("flash-active");
@@ -409,29 +440,29 @@ img{display:block;pointer-events:none;-webkit-user-drag:none}
     void dom.valueFlash.offsetWidth;
     dom.valueFlash.classList.add("show");
     valueFlashTimer=setTimeout(()=>{
-      dom.valueFlash.classList.remove("show");
-      dom.playPanel.classList.remove("flash-active");
+      hideValueFlash();
     },2600);
   }
 
-  function showValueMessage(valueId=null,flash=false) {
+  function showTopValue(valueId=null) {
     const value=valueId ? VALUE_MESSAGES[valueId] : null;
-    let phrase="Encuentra un par para descubrir su valor";
-
-    if(value && Array.isArray(value.phrases) && value.phrases.length) {
-      phrase=value.phrases[Math.floor(Math.random()*value.phrases.length)];
-    }
-
     dom.valueTitle.hidden=!value;
     dom.valueTitle.textContent=value ? value.title : "";
-    dom.valuePhrase.textContent=phrase;
+    dom.valuePhrase.textContent=value ? value.summary : "Voltea una carta para descubrir su valor";
     dom.valueMessage.classList.toggle("initial",!value);
     dom.valueMessage.classList.remove("animate");
     void dom.valueMessage.offsetWidth;
     dom.valueMessage.classList.add("animate");
+    if(!value) hideValueFlash(true);
+  }
 
-    if(value && flash) showValueFlash(value.title,phrase);
-    else if(!value) hideValueFlash(true);
+  function showMatchExample(valueId) {
+    const value=VALUE_MESSAGES[valueId];
+    if(!value) return;
+    const phrase=Array.isArray(value.phrases) && value.phrases.length
+      ? value.phrases[Math.floor(Math.random()*value.phrases.length)]
+      : value.summary;
+    showValueFlash(value.title,phrase);
   }
 
   function showScreen(el) {
@@ -498,15 +529,22 @@ img{display:block;pointer-events:none;-webkit-user-drag:none}
   function pick(card) {
     if(state.locked || card.disabled || card.classList.contains("flipped")) return;
     flip(card,true);
-    if(!state.first) { state.first=card; return; }
+    if(!state.first) {
+      state.first=card;
+      showTopValue(card.dataset.valueId);
+      return;
+    }
     state.second=card; state.locked=true; state.moves++; updateStats();
 
     if(state.first.dataset.pair===state.second.dataset.pair) {
       state.points+=CONFIG.pointsPerMatch;
       [state.first,state.second].forEach(c=>{c.classList.add("matched");c.disabled=true;c.setAttribute("aria-label","Carta emparejada");});
-      showValueMessage(state.first.dataset.valueId,true);
+      showMatchExample(state.first.dataset.valueId);
       state.pairs++; updateStats(); resetSelection();
-      if(state.pairs===CONFIG.totalPairs) setTimeout(showWin,2850);
+      if(state.pairs===CONFIG.totalPairs) {
+        clearTimeout(winTimer);
+        winTimer=setTimeout(showWin,2850);
+      }
     } else {
       state.points=Math.max(0,state.points-CONFIG.penaltyPerMiss); updateStats();
       setTimeout(()=>{ if(state.first) flip(state.first,false); if(state.second) flip(state.second,false); resetSelection(); },CONFIG.mismatchDelay);
@@ -514,7 +552,7 @@ img{display:block;pointer-events:none;-webkit-user-drag:none}
   }
 
   function startGame() {
-    resetState(); state.deck=buildDeck(); updateStats(); showValueMessage(null); dom.win.hidden=true; showScreen(dom.game); render();
+    clearTimeout(winTimer); resetState(); state.deck=buildDeck(); updateStats(); showTopValue(null); dom.win.hidden=true; showScreen(dom.game); render();
   }
 
   function showWin() {
@@ -530,6 +568,7 @@ img{display:block;pointer-events:none;-webkit-user-drag:none}
   dom.restart.addEventListener("click",startGame);
   dom.again.addEventListener("click",startGame);
   dom.menuBtn.addEventListener("click",goMenu);
+  dom.valueFlashSkip.addEventListener("click",requestFastFlashClose);
 
   let resizeTimer;
   function onResize() {
