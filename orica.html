@@ -86,6 +86,7 @@ img{display:block;pointer-events:none;-webkit-user-drag:none}
 }
 .btn:hover,.play:hover{filter:brightness(1.07)}
 .play-panel{
+  position:relative;
   flex:1 1 auto;min-width:0;min-height:0;display:flex;flex-direction:column;overflow:hidden;
   border:1px solid rgba(255,255,255,.18);border-radius:26px;
   background:linear-gradient(145deg,rgba(255,255,255,.12),rgba(255,255,255,.055));
@@ -98,10 +99,12 @@ img{display:block;pointer-events:none;-webkit-user-drag:none}
   grid-template-rows:repeat(var(--rows,2),var(--card-h,160px));
   gap:var(--gap);justify-content:center;align-content:center;
   padding:clamp(10px,1.5vw,18px);
+  transition:filter .22s ease,transform .22s ease;
 }
+.play-panel.flash-active .board{filter:brightness(.58) saturate(.82);transform:scale(.992)}
 .value-message{
   flex:0 0 auto;min-height:clamp(82px,11vh,116px);
-  margin:0 clamp(10px,1.5vw,18px) clamp(10px,1.5vw,18px);
+  margin:clamp(10px,1.5vw,18px) clamp(10px,1.5vw,18px) 0;
   padding:clamp(12px,1.5vw,17px) clamp(14px,2vw,24px);
   display:flex;align-items:center;justify-content:center;text-align:center;
   border:1px solid rgba(255,255,255,.17);border-radius:18px;
@@ -122,6 +125,38 @@ img{display:block;pointer-events:none;-webkit-user-drag:none}
 @keyframes valueReveal{
   from{opacity:0;transform:translateY(10px)}
   to{opacity:1;transform:translateY(0)}
+}
+.value-flash{
+  position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;
+  padding:clamp(18px,4vw,46px);pointer-events:none;
+  opacity:0;visibility:hidden;transition:opacity .2s ease,visibility .2s ease;
+}
+.value-flash.show{opacity:1;visibility:visible}
+.value-flash-card{
+  width:min(560px,88%);padding:clamp(24px,4vw,38px) clamp(22px,4vw,42px);
+  text-align:center;border:1px solid rgba(255,255,255,.34);border-radius:26px;
+  background:linear-gradient(155deg,rgba(0,82,143,.97),rgba(0,42,84,.98));
+  box-shadow:0 24px 70px rgba(0,17,42,.48),0 0 0 6px rgba(65,208,255,.10);
+  backdrop-filter:blur(16px);transform:translateY(14px) scale(.94);
+  transition:transform .28s cubic-bezier(.2,.8,.2,1);
+}
+.value-flash.show .value-flash-card{transform:translateY(0) scale(1)}
+.value-flash-kicker{
+  margin:0 0 8px;color:#9ceaff;font-size:clamp(11px,1.4vw,14px);font-weight:900;
+  letter-spacing:.16em;text-transform:uppercase;
+}
+.value-flash-title{
+  margin:0 0 12px;color:#fff;font-size:clamp(28px,5vw,48px);font-weight:1000;
+  letter-spacing:.045em;line-height:1;text-transform:uppercase;
+}
+.value-flash-phrase{
+  margin:0;color:#fff;font-size:clamp(17px,2.3vw,24px);font-weight:700;font-style:italic;
+  line-height:1.35;text-wrap:balance;
+}
+.value-flash-found{
+  display:inline-flex;margin-top:18px;padding:7px 12px;border-radius:999px;
+  border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.10);
+  color:#b9f2ff;font-size:11px;font-weight:900;letter-spacing:.11em;text-transform:uppercase;
 }
 .card{
   position:relative;width:100%;height:100%;padding:0;border:0;background:transparent;cursor:pointer;perspective:1100px;
@@ -164,10 +199,11 @@ img{display:block;pointer-events:none;-webkit-user-drag:none}
   .stat b{font-size:19px}
   .stat span{font-size:8px}
   .play-panel{border-radius:20px}
-  .value-message{min-height:74px;margin:0 8px 8px;padding:10px 12px;border-radius:14px}
+  .value-message{min-height:74px;margin:8px 8px 0;padding:10px 12px;border-radius:14px}
   .value-title{font-size:16px}
   .value-phrase{font-size:12px}
   .value-message.initial .value-phrase{font-size:12px}
+  .value-flash-card{width:min(520px,92%);border-radius:20px}
 }
 @media(max-height:600px){
   #game{gap:6px;padding-top:6px;padding-bottom:6px}
@@ -175,13 +211,18 @@ img{display:block;pointer-events:none;-webkit-user-drag:none}
   .brand-mini img{width:38px;height:38px}
   .btn{min-height:40px;min-width:40px}
   .stat span{display:none}
-  .value-message{min-height:56px;margin:0 7px 7px;padding:7px 10px}
+  .value-message{min-height:56px;margin:7px 7px 0;padding:7px 10px}
   .value-title{margin-bottom:2px;font-size:14px}
   .value-phrase,.value-message.initial .value-phrase{font-size:11px;line-height:1.25}
+  .value-flash-card{padding:18px 22px}
+  .value-flash-title{margin-bottom:8px;font-size:26px}
+  .value-flash-phrase{font-size:15px}
+  .value-flash-found{margin-top:12px}
 }
 @media(prefers-reduced-motion:reduce){
   .inner,.play,.btn{transition:none}
   .card.matched,.value-message.animate .value-copy{animation:none}
+  .board,.value-flash,.value-flash-card{transition:none}
 }
 </style>
 </head>
@@ -205,14 +246,22 @@ img{display:block;pointer-events:none;-webkit-user-drag:none}
         <button id="restart" class="btn" type="button" aria-label="Reiniciar"><span>↻</span><span class="label"> Reiniciar</span></button>
       </div>
     </header>
-    <div class="play-panel">
-      <main id="board" class="board" role="grid" aria-label="Tablero de memoria de 10 cartas"></main>
+    <div id="playPanel" class="play-panel">
       <section id="valueMessage" class="value-message initial animate" aria-live="polite" aria-atomic="true">
         <div class="value-copy">
           <h2 id="valueTitle" class="value-title" hidden></h2>
           <p id="valuePhrase" class="value-phrase">Encuentra un par para descubrir su valor</p>
         </div>
       </section>
+      <main id="board" class="board" role="grid" aria-label="Tablero de memoria de 10 cartas"></main>
+      <div id="valueFlash" class="value-flash" aria-live="assertive" aria-atomic="true">
+        <div class="value-flash-card">
+          <p class="value-flash-kicker">Par encontrado</p>
+          <h2 id="valueFlashTitle" class="value-flash-title"></h2>
+          <p id="valueFlashPhrase" class="value-flash-phrase"></p>
+          <span class="value-flash-found">✓ Valor descubierto</span>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -309,9 +358,12 @@ img{display:block;pointer-events:none;-webkit-user-drag:none}
   const dom = {
     menu:$("menu"), game:$("game"), board:$("board"), start:$("start"), restart:$("restart"),
     pairs:$("pairs"), moves:$("moves"), points:$("points"), win:$("win"), summary:$("summary"),
-    again:$("again"), menuBtn:$("menuBtn"), valueMessage:$("valueMessage"),
-    valueTitle:$("valueTitle"), valuePhrase:$("valuePhrase")
+    again:$("again"), menuBtn:$("menuBtn"), playPanel:$("playPanel"), valueMessage:$("valueMessage"),
+    valueTitle:$("valueTitle"), valuePhrase:$("valuePhrase"), valueFlash:$("valueFlash"),
+    valueFlashTitle:$("valueFlashTitle"), valueFlashPhrase:$("valueFlashPhrase")
   };
+
+  let valueFlashTimer=null;
 
   function shuffle(input) {
     const arr=[...input];
@@ -340,7 +392,29 @@ img{display:block;pointer-events:none;-webkit-user-drag:none}
     dom.points.textContent=String(state.points);
   }
 
-  function showValueMessage(valueId=null) {
+  function hideValueFlash(immediate=false) {
+    clearTimeout(valueFlashTimer);
+    dom.valueFlash.classList.remove("show");
+    dom.playPanel.classList.remove("flash-active");
+    if(immediate) return;
+    valueFlashTimer=setTimeout(()=>{},240);
+  }
+
+  function showValueFlash(title,phrase) {
+    clearTimeout(valueFlashTimer);
+    dom.valueFlashTitle.textContent=title;
+    dom.valueFlashPhrase.textContent=phrase;
+    dom.playPanel.classList.add("flash-active");
+    dom.valueFlash.classList.remove("show");
+    void dom.valueFlash.offsetWidth;
+    dom.valueFlash.classList.add("show");
+    valueFlashTimer=setTimeout(()=>{
+      dom.valueFlash.classList.remove("show");
+      dom.playPanel.classList.remove("flash-active");
+    },2600);
+  }
+
+  function showValueMessage(valueId=null,flash=false) {
     const value=valueId ? VALUE_MESSAGES[valueId] : null;
     let phrase="Encuentra un par para descubrir su valor";
 
@@ -355,6 +429,9 @@ img{display:block;pointer-events:none;-webkit-user-drag:none}
     dom.valueMessage.classList.remove("animate");
     void dom.valueMessage.offsetWidth;
     dom.valueMessage.classList.add("animate");
+
+    if(value && flash) showValueFlash(value.title,phrase);
+    else if(!value) hideValueFlash(true);
   }
 
   function showScreen(el) {
@@ -427,9 +504,9 @@ img{display:block;pointer-events:none;-webkit-user-drag:none}
     if(state.first.dataset.pair===state.second.dataset.pair) {
       state.points+=CONFIG.pointsPerMatch;
       [state.first,state.second].forEach(c=>{c.classList.add("matched");c.disabled=true;c.setAttribute("aria-label","Carta emparejada");});
-      showValueMessage(state.first.dataset.valueId);
+      showValueMessage(state.first.dataset.valueId,true);
       state.pairs++; updateStats(); resetSelection();
-      if(state.pairs===CONFIG.totalPairs) setTimeout(showWin,900);
+      if(state.pairs===CONFIG.totalPairs) setTimeout(showWin,2850);
     } else {
       state.points=Math.max(0,state.points-CONFIG.penaltyPerMiss); updateStats();
       setTimeout(()=>{ if(state.first) flip(state.first,false); if(state.second) flip(state.second,false); resetSelection(); },CONFIG.mismatchDelay);
