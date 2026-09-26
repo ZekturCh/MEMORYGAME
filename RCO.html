@@ -1,713 +1,709 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="utf-8">
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="theme-color" content="#003b70">
-<title>ORICA · Ordena el camerino</title>
+<meta name="theme-color" content="#003f76">
+<title>ORICA · Pon a prueba tus valores</title>
 <style>
 :root{
   --navy:#003b70;
   --navy-2:#062e5c;
   --blue:#009fe3;
-  --blue-2:#28b7ed;
+  --blue-2:#2dc1f0;
   --ice:#eaf8ff;
-  --white:#ffffff;
-  --mint:#8cf0d3;
-  --danger:#ff5d6c;
-  --yellow:#ffc94a;
+  --white:#fff;
+  --green:#35d07f;
+  --green-2:#13a761;
+  --red:#ff6474;
+  --red-2:#dc3f56;
+  --amber:#ffd76b;
   --panel:rgba(255,255,255,.12);
   --line:rgba(255,255,255,.22);
-  --shadow:0 22px 55px rgba(0,25,58,.30);
+  --shadow:0 24px 70px rgba(0,26,58,.34);
   --safe-top:env(safe-area-inset-top,0px);
   --safe-right:env(safe-area-inset-right,0px);
   --safe-bottom:env(safe-area-inset-bottom,0px);
   --safe-left:env(safe-area-inset-left,0px);
 }
 *{box-sizing:border-box}
-html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#01325f}
+html,body{width:100%;height:100%;margin:0;overflow:hidden;overscroll-behavior:none}
 body{
   font-family:Inter,Segoe UI,Arial,sans-serif;
   color:#fff;
+  background:
+    radial-gradient(circle at 18% 12%,rgba(77,203,248,.44),transparent 27%),
+    radial-gradient(circle at 84% 84%,rgba(28,169,225,.28),transparent 31%),
+    linear-gradient(145deg,#00538f 0%,#003b70 48%,#01284f 100%);
   -webkit-tap-highlight-color:transparent;
   user-select:none;
-  overscroll-behavior:none;
-  background:
-    radial-gradient(circle at 12% 10%,rgba(77,203,248,.38),transparent 28%),
-    radial-gradient(circle at 85% 78%,rgba(17,151,218,.28),transparent 30%),
-    linear-gradient(145deg,#00528e 0%,#003b70 48%,#01284f 100%);
 }
-body:before{
-  content:"";
-  position:fixed;inset:-25%;
-  pointer-events:none;opacity:.18;
-  background:repeating-radial-gradient(circle at 50% 52%,transparent 0 40px,rgba(123,220,255,.55) 41px 45px,transparent 46px 82px);
+body::before{
+  content:"";position:fixed;inset:-25%;pointer-events:none;opacity:.20;
+  background:repeating-radial-gradient(circle at 50% 52%,transparent 0 42px,rgba(123,220,255,.46) 43px 47px,transparent 48px 86px);
 }
 button{font:inherit}
-#app{
-  position:relative;width:100%;height:100%;
-  padding:calc(10px + var(--safe-top)) calc(12px + var(--safe-right)) calc(10px + var(--safe-bottom)) calc(12px + var(--safe-left));
-  display:flex;flex-direction:column;gap:10px;
+img{display:block;max-width:100%;-webkit-user-drag:none}
+[hidden]{display:none!important}
+#app{position:relative;width:100%;height:100%;padding:var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left)}
+.screen{position:absolute;inset:0;display:none;min-width:0;min-height:0}
+.screen.active{display:flex}
+
+#startScreen{
+  align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:28px;
 }
+.start-card{
+  width:min(760px,94vw);padding:clamp(28px,5vw,56px);border:1px solid rgba(255,255,255,.25);
+  border-radius:34px;background:linear-gradient(150deg,rgba(255,255,255,.16),rgba(255,255,255,.07));
+  box-shadow:var(--shadow);backdrop-filter:blur(12px);
+}
+.orica-mark{
+  display:inline-flex;align-items:center;justify-content:center;gap:12px;margin-bottom:18px;
+  font-weight:1000;font-style:italic;letter-spacing:.03em;font-size:clamp(34px,7vw,68px);
+  color:#fff;text-shadow:0 8px 24px rgba(0,25,55,.28);
+}
+.orica-orbit{
+  width:clamp(54px,8vw,82px);aspect-ratio:1;position:relative;display:inline-block;transform:rotate(-12deg)
+}
+.orica-orbit::before,.orica-orbit::after{
+  content:"";position:absolute;inset:15%;border:clamp(7px,1vw,10px) solid var(--blue-2);border-radius:50% 48% 52% 46%;
+  transform:rotate(35deg)
+}
+.orica-orbit::after{border-color:#fff;inset:28% 8%;transform:rotate(-25deg)}
+.eyebrow{margin:0 0 8px;color:#91e5ff;font-weight:900;letter-spacing:.18em;text-transform:uppercase;font-size:12px}
+.start-title{margin:0;font-size:clamp(34px,6vw,68px);line-height:.98;letter-spacing:-.035em}
+.start-copy{
+  width:min(620px,100%);margin:18px auto 26px;color:#d7f4ff;font-size:clamp(15px,2vw,20px);line-height:1.5
+}
+.start-values{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin:0 auto 28px}
+.value-pill{
+  padding:8px 12px;border:1px solid rgba(255,255,255,.18);border-radius:999px;
+  background:rgba(0,38,76,.34);color:#e9faff;font-weight:850;font-size:11px;letter-spacing:.07em;text-transform:uppercase
+}
+.primary-btn{
+  min-width:min(340px,88vw);min-height:72px;border:2px solid rgba(255,255,255,.94);border-radius:999px;
+  background:linear-gradient(180deg,#fff,#dff6ff);color:var(--navy);font-size:clamp(24px,4vw,38px);
+  font-weight:1000;letter-spacing:.04em;cursor:pointer;box-shadow:0 0 0 7px rgba(0,159,227,.35),0 18px 35px rgba(0,27,58,.35);
+  transition:transform .12s ease,filter .12s ease;
+}
+.primary-btn:hover{filter:brightness(1.05)} .primary-btn:active{transform:scale(.97)}
+
+#gameScreen{flex-direction:column;gap:10px;padding:calc(10px + var(--safe-top)) calc(12px + var(--safe-right)) calc(10px + var(--safe-bottom)) calc(12px + var(--safe-left))}
 .topbar{
-  flex:0 0 auto;
-  min-height:74px;
-  display:grid;
-  grid-template-columns:minmax(135px,1fr) auto minmax(62px,1fr);
-  align-items:center;
-  gap:10px;
-  padding:9px 12px;
-  border:1px solid var(--line);
-  border-radius:22px;
-  background:rgba(0,44,86,.64);
-  box-shadow:0 12px 30px rgba(0,26,58,.23);
-  backdrop-filter:blur(12px);
+  flex:0 0 auto;display:grid;grid-template-columns:minmax(130px,1fr) auto minmax(130px,1fr);gap:12px;align-items:center;
+  min-height:62px;padding:8px 12px;border:1px solid var(--line);border-radius:20px;background:rgba(0,44,86,.60);
+  box-shadow:0 12px 30px rgba(0,26,58,.22);backdrop-filter:blur(12px);
 }
-.brand{display:flex;align-items:center;gap:10px;min-width:0}
-.brand-symbol{position:relative;width:52px;height:52px;flex:0 0 52px}
-.brand-symbol i{
-  position:absolute;left:6px;top:17px;width:40px;height:16px;border-radius:999px;
-  background:linear-gradient(90deg,#11aee8,#0068ae);
-  transform-origin:center;
-  box-shadow:inset 0 1px 2px rgba(255,255,255,.45),0 5px 10px rgba(0,23,50,.20)
-}
-.brand-symbol i:nth-child(1){transform:rotate(38deg)}
-.brand-symbol i:nth-child(2){transform:rotate(-38deg)}
-.brand-symbol i:nth-child(3){width:34px;left:9px;transform:rotate(90deg);background:linear-gradient(90deg,#0068ae,#00528e)}
-.brand-copy{min-width:0;line-height:1}
-.brand-copy strong{display:block;font-size:20px;letter-spacing:.03em}
-.brand-copy span{display:block;margin-top:5px;color:#bfeeff;font-size:9px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;white-space:nowrap}
-.stats{display:flex;align-items:center;justify-content:center;gap:clamp(15px,4vw,42px)}
-.stat{display:flex;flex-direction:column;align-items:center;line-height:1}
-.stat b{font-size:clamp(20px,2.8vw,28px)}
-.stat span{margin-top:5px;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#bfeeff;font-weight:800}
-.actions{justify-self:end}
-.btn{
-  min-width:48px;min-height:48px;padding:10px 15px;
-  border:1px solid rgba(255,255,255,.26);border-radius:999px;
-  color:#fff;background:rgba(255,255,255,.10);
-  font-weight:900;cursor:pointer;transition:transform .14s ease,filter .14s ease;
-}
-.btn:active{transform:scale(.95)}
+.brand{display:flex;align-items:center;gap:9px;font-weight:1000;font-style:italic;font-size:20px;letter-spacing:.04em}
+.brand .dot{width:30px;height:30px;border:7px solid #35c6ef;border-radius:50%;position:relative;transform:rotate(-18deg)}
+.brand .dot::after{content:"";position:absolute;left:7px;top:-7px;width:18px;height:30px;border:6px solid #fff;border-radius:50%;transform:rotate(58deg)}
+.progress-box{text-align:center;min-width:145px}
+.progress-line{height:5px;background:rgba(255,255,255,.15);border-radius:999px;overflow:hidden;margin-bottom:4px}
+.progress-fill{height:100%;width:0;background:linear-gradient(90deg,#77e4ff,#fff);border-radius:inherit;transition:width .35s ease}
+.progress-text{font-size:10px;color:#c7efff;font-weight:900;letter-spacing:.12em;text-transform:uppercase}
+.hud{justify-self:end;display:flex;gap:8px}
+.hud-item{min-width:74px;text-align:center;padding:6px 9px;border-radius:13px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12)}
+.hud-item b{display:block;font-size:18px;line-height:1}
+.hud-item span{display:block;margin-top:3px;color:#bfeeff;font-size:8px;font-weight:900;letter-spacing:.11em;text-transform:uppercase}
+
 .game-shell{
-  position:relative;flex:1 1 auto;min-height:0;overflow:hidden;
-  display:flex;flex-direction:column;
-  border:1px solid rgba(255,255,255,.18);border-radius:27px;
-  background:linear-gradient(145deg,rgba(255,255,255,.12),rgba(255,255,255,.055));
-  box-shadow:inset 0 0 70px rgba(0,22,49,.22),0 18px 40px rgba(0,20,45,.16);
-  backdrop-filter:blur(8px);
+  flex:1 1 auto;min-height:0;display:grid;grid-template-columns:minmax(0,1.18fr) minmax(320px,.82fr);gap:12px;
+  padding:12px;border:1px solid rgba(255,255,255,.18);border-radius:28px;background:linear-gradient(145deg,rgba(255,255,255,.13),rgba(255,255,255,.055));
+  box-shadow:inset 0 0 60px rgba(0,22,49,.18),0 18px 40px rgba(0,20,45,.16);backdrop-filter:blur(8px)
 }
-.intro{
-  flex:0 0 auto;
-  display:flex;align-items:center;justify-content:space-between;gap:14px;
-  padding:12px 17px;
-  border-bottom:1px solid rgba(255,255,255,.13);
-  background:linear-gradient(90deg,rgba(0,58,111,.74),rgba(0,105,164,.24));
+.scene-card{
+  position:relative;min-width:0;min-height:0;overflow:hidden;border-radius:22px;border:1px solid rgba(255,255,255,.22);
+  background:#082f59;box-shadow:0 16px 34px rgba(0,23,49,.25)
 }
-.intro-copy{min-width:0}
-.intro h1{margin:0;font-size:clamp(16px,2.2vw,24px);letter-spacing:.01em}
-.intro p{margin:4px 0 0;color:#d9f5ff;font-size:clamp(11px,1.3vw,14px);line-height:1.35}
-.demo-pill{
-  flex:0 0 auto;padding:7px 10px;border-radius:999px;
-  border:1px solid rgba(132,230,255,.40);background:rgba(0,159,227,.16);
-  color:#aeeaff;font-size:9px;font-weight:900;letter-spacing:.12em;text-transform:uppercase
+.scene-card img{width:100%;height:100%;object-fit:cover}
+.scene-placeholder{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;
+  text-align:center;padding:24px;background:
+    linear-gradient(135deg,rgba(0,159,227,.18),rgba(0,45,86,.16)),
+    repeating-linear-gradient(125deg,rgba(255,255,255,.035) 0 2px,transparent 2px 18px);
+  color:#ccefff
 }
-.scene-wrap{position:relative;flex:1 1 auto;min-height:0;padding:12px}
-.scene{
-  position:relative;width:100%;height:100%;min-height:360px;overflow:hidden;
-  border-radius:21px;border:1px solid rgba(255,255,255,.18);
-  background:
-    linear-gradient(rgba(255,255,255,.035),rgba(255,255,255,.015)),
-    linear-gradient(180deg,#7e9bad 0 13%,#b9c7cd 13% 58%,#657d89 58% 61%,#394f5a 61% 100%);
-  box-shadow:inset 0 0 60px rgba(0,15,35,.25);
+.scene-placeholder .factory-icon{font-size:clamp(56px,9vw,100px);filter:drop-shadow(0 10px 18px rgba(0,15,35,.24))}
+.scene-placeholder strong{font-size:clamp(15px,2vw,21px);letter-spacing:.13em;text-transform:uppercase}
+.scene-placeholder span{font-size:12px;color:#90dfff}
+.scene-badge{
+  position:absolute;left:14px;top:14px;z-index:3;padding:8px 12px;border-radius:999px;
+  background:rgba(0,39,78,.78);border:1px solid rgba(255,255,255,.22);backdrop-filter:blur(10px);
+  font-size:10px;font-weight:950;letter-spacing:.11em;text-transform:uppercase
 }
-.scene:before{
-  content:"";
-  position:absolute;left:0;right:0;bottom:0;height:39%;
-  opacity:.38;pointer-events:none;
-  background:
-    linear-gradient(150deg,transparent 0 48%,rgba(255,255,255,.13) 49% 50%,transparent 51% 100%),
-    repeating-linear-gradient(90deg,rgba(255,255,255,.08) 0 1px,transparent 1px 90px);
+.scene-vignette{position:absolute;inset:auto 0 0;height:36%;background:linear-gradient(transparent,rgba(0,24,50,.62));pointer-events:none}
+
+.challenge{
+  min-width:0;min-height:0;display:flex;flex-direction:column;padding:clamp(14px,2vw,22px);
+  border-radius:22px;background:linear-gradient(160deg,rgba(1,54,104,.76),rgba(0,36,72,.62));
+  border:1px solid rgba(255,255,255,.16)
 }
-.scene:after{
-  content:"";
-  position:absolute;left:0;right:0;top:11%;height:4px;
-  background:linear-gradient(90deg,transparent,#dff8ff 18%,#fff 50%,#dff8ff 82%,transparent);
-  opacity:.65;filter:blur(.4px);box-shadow:0 0 25px rgba(255,255,255,.8)
+.challenge-top{flex:0 0 auto}
+.challenge-kicker{margin:0 0 7px;color:#83dcff;font-size:11px;font-weight:950;letter-spacing:.16em;text-transform:uppercase}
+.challenge h1{margin:0;font-size:clamp(22px,3vw,38px);line-height:1.05;letter-spacing:-.025em}
+.situation{
+  flex:1 1 auto;display:flex;align-items:center;margin:14px 0;padding:clamp(15px,2vw,22px);
+  border-radius:18px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.075);
+  color:#f4fcff;font-size:clamp(15px,1.75vw,21px);font-weight:720;line-height:1.42
 }
-.photo-label{
-  position:absolute;z-index:2;left:14px;bottom:12px;padding:7px 9px;
-  border:1px solid rgba(255,255,255,.20);border-radius:9px;
-  background:rgba(1,38,72,.64);color:#cfefff;font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
-  pointer-events:none
+.question{margin:0 0 10px;color:#c7efff;font-weight:850;font-size:13px}
+.answers{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.answer-btn{
+  min-height:76px;border:1px solid rgba(255,255,255,.20);border-radius:18px;color:#fff;cursor:pointer;
+  font-weight:950;font-size:clamp(14px,1.5vw,18px);line-height:1.1;transition:transform .13s ease,filter .13s ease,box-shadow .2s ease
 }
-.bench{
-  position:absolute;z-index:3;left:18%;right:17%;bottom:18%;height:11%;
-  border-radius:10px 10px 5px 5px;
-  background:linear-gradient(180deg,#936b46,#61442f);
-  box-shadow:0 10px 0 #3b2a20,0 16px 18px rgba(0,0,0,.25),inset 0 2px 0 rgba(255,255,255,.25);
-}
-.bench:before,.bench:after{
-  content:"";position:absolute;top:100%;width:8px;height:62%;background:#263640;border-radius:0 0 3px 3px
-}
-.bench:before{left:10%}.bench:after{right:10%}
-.locker-bank{
-  position:absolute;z-index:4;left:7%;right:7%;top:17%;height:44%;
-  display:grid;grid-template-columns:repeat(3,1fr);gap:2.4%
-}
-.locker{
-  position:relative;min-width:0;overflow:visible;border-radius:8px;
-  background:linear-gradient(180deg,#d8e0e4,#91a4ad);
-  border:2px solid rgba(55,81,94,.72);
-  box-shadow:0 8px 14px rgba(0,22,38,.22),inset 0 1px 0 rgba(255,255,255,.65);
-  transition:filter .18s ease,transform .18s ease,box-shadow .18s ease;
-}
-.locker:before{
-  content:"";position:absolute;inset:6px;border:1px solid rgba(50,76,88,.38);border-radius:5px;pointer-events:none
-}
-.locker-name{
-  position:absolute;z-index:5;left:10%;right:10%;top:8%;
-  padding:6px 5px;border-radius:5px;text-align:center;
-  color:#06325a;background:#f7fbfd;border:1px solid #91a9b4;
-  font-size:clamp(9px,1.25vw,14px);font-weight:900;text-transform:uppercase;
-  box-shadow:0 2px 5px rgba(0,20,35,.12)
-}
-.locker-code{display:block;margin-top:2px;color:#5f7782;font-size:.72em;letter-spacing:.1em}
-.vents{
-  position:absolute;left:19%;right:19%;top:29%;height:15%;
-  background:repeating-linear-gradient(180deg,#6e838d 0 3px,transparent 3px 7px);opacity:.7
-}
-.handle{
-  position:absolute;right:10%;top:55%;width:10%;height:20%;min-width:6px;
-  border-radius:4px;background:#647983;box-shadow:inset 0 0 0 1px rgba(0,0,0,.18)
-}
-.locker-door{
-  position:absolute;z-index:3;inset:0;border-radius:6px;
-  transform-origin:left center;transform:perspective(600px) rotateY(-68deg);
-  background:linear-gradient(95deg,#dbe4e8,#9aacb4);
-  border:1px solid #6f858f;
-  box-shadow:9px 8px 16px rgba(0,18,32,.32);
-  transition:transform .55s cubic-bezier(.2,.8,.25,1),box-shadow .3s ease
-}
-.locker-door:before{
-  content:"";position:absolute;inset:8px;border:1px solid rgba(66,90,100,.26);border-radius:4px
-}
-.locker.closed .locker-door{transform:perspective(600px) rotateY(0deg);box-shadow:inset 0 0 0 1px rgba(255,255,255,.24),0 5px 10px rgba(0,20,35,.18)}
-.locker.correct{box-shadow:0 0 0 3px rgba(140,240,211,.85),0 0 28px rgba(140,240,211,.55),0 8px 16px rgba(0,20,35,.22)}
-.locker.wrong{animation:lockerWrong .48s ease}
-.locker.targeted{filter:brightness(1.07);box-shadow:0 0 0 3px rgba(80,205,255,.88),0 0 28px rgba(52,191,255,.60)}
-@keyframes lockerWrong{0%,100%{transform:translateX(0)}25%{transform:translateX(-7px)}50%{transform:translateX(6px)}75%{transform:translateX(-4px)}}
-.objects-layer{position:absolute;inset:0;z-index:10;pointer-events:none}
-.object{
-  --dx:0px;--dy:0px;
-  position:absolute;left:var(--x);top:var(--y);
-  width:clamp(72px,10vw,118px);height:clamp(68px,9vw,110px);
-  transform:translate(var(--dx),var(--dy));
-  display:flex;align-items:center;justify-content:center;
-  pointer-events:auto;touch-action:none;cursor:grab;
-  border:1px solid rgba(255,255,255,.28);border-radius:18px;
-  background:linear-gradient(145deg,rgba(255,255,255,.92),rgba(213,243,255,.88));
-  box-shadow:0 13px 24px rgba(0,20,36,.27),inset 0 1px 0 #fff;
-  transition:box-shadow .18s ease,filter .18s ease,transform .24s cubic-bezier(.2,.75,.25,1),opacity .22s ease;
-  will-change:transform,left,top;
-}
-.object svg{width:72%;height:65%;overflow:visible;pointer-events:none}
-.object .tag{
-  position:absolute;left:50%;bottom:5px;transform:translateX(-50%);
-  max-width:92%;padding:3px 6px;border-radius:999px;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  background:#003b70;color:#fff;font-size:clamp(7px,.78vw,9px);font-weight:900;letter-spacing:.05em
-}
-.object.selected{
-  box-shadow:0 0 0 4px rgba(52,195,255,.92),0 0 28px rgba(58,202,255,.78),0 14px 25px rgba(0,20,36,.28);
-  filter:brightness(1.05)
-}
-.object.dragging{z-index:40;cursor:grabbing;transition:none;filter:brightness(1.08);box-shadow:0 0 0 4px rgba(76,211,255,.95),0 0 34px rgba(45,198,255,.85),0 20px 30px rgba(0,20,36,.35)}
-.object.returning{transition:transform .36s cubic-bezier(.2,.8,.25,1)}
-.object.placed{pointer-events:none;opacity:0}
-.object.wrong{animation:itemWrong .42s ease}
-@keyframes itemWrong{0%,100%{filter:brightness(1)}45%{filter:drop-shadow(0 0 10px rgba(255,75,91,.9)) brightness(1.06)}}
-.object[data-id="walkman"]{--x:18%;--y:72%;--mx:11%;--my:73%}
-.object[data-id="glasses"]{--x:46%;--y:67%;--mx:38%;--my:75%}
-.object[data-id="badge"]{--x:72%;--y:73%;--mx:67%;--my:73%}
+.answer-btn .symbol{display:block;font-size:26px;margin-bottom:3px}
+.answer-btn.expected{background:linear-gradient(155deg,rgba(39,189,112,.95),rgba(11,126,72,.92))}
+.answer-btn.unexpected{background:linear-gradient(155deg,rgba(240,83,103,.96),rgba(166,41,64,.94))}
+.answer-btn:hover{filter:brightness(1.07);transform:translateY(-1px)}
+.answer-btn:active{transform:scale(.98)}
+.answer-btn:disabled{cursor:default;opacity:.72}
+.answer-btn.correct-choice{box-shadow:0 0 0 3px rgba(255,255,255,.92),0 0 28px rgba(81,235,160,.55);opacity:1}
+.answer-btn.wrong-choice{box-shadow:0 0 0 3px rgba(255,255,255,.82),0 0 25px rgba(255,96,113,.48);opacity:1}
+
 .feedback{
-  flex:0 0 auto;min-height:70px;
-  margin:0 12px 12px;padding:11px 15px;
-  display:flex;align-items:center;justify-content:center;text-align:center;
-  border:1px solid rgba(255,255,255,.17);border-radius:18px;
-  background:linear-gradient(145deg,rgba(0,54,104,.52),rgba(0,107,165,.22));
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.08)
+  flex:0 0 auto;margin-top:10px;padding:14px 15px;border-radius:18px;border:1px solid rgba(255,255,255,.17);
+  background:rgba(255,255,255,.09);animation:feedbackIn .34s cubic-bezier(.2,.8,.2,1) both
 }
-.feedback-copy{max-width:min(900px,95%)}
-.feedback-title{margin:0 0 4px;color:#8be4ff;font-size:clamp(15px,1.9vw,21px);font-weight:900;letter-spacing:.07em;text-transform:uppercase}
-.feedback-text{margin:0;color:#fff;font-size:clamp(11px,1.35vw,15px);line-height:1.35;font-weight:650}
-.feedback.success{background:linear-gradient(145deg,rgba(0,96,91,.58),rgba(0,143,122,.26))}
-.feedback.success .feedback-title{color:#a8f5df}
-.feedback.error{background:linear-gradient(145deg,rgba(104,25,48,.64),rgba(141,30,53,.26))}
-.feedback.error .feedback-title{color:#ffb1ba}
-.feedback.animate .feedback-copy{animation:feedbackIn .36s cubic-bezier(.2,.75,.25,1) both}
-@keyframes feedbackIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-.overlay{
-  position:absolute;inset:0;z-index:80;
-  display:flex;align-items:center;justify-content:center;padding:22px;
-  background:rgba(0,27,57,.78);backdrop-filter:blur(10px)
+@keyframes feedbackIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.feedback-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+.result-chip{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:1000;letter-spacing:.12em;text-transform:uppercase}
+.result-chip.good{color:#88ffc0}.result-chip.bad{color:#ff9eaa}
+.value-reveal{
+  padding:6px 10px;border-radius:999px;background:linear-gradient(90deg,#fff,#ccefff);color:var(--navy);
+  font-size:11px;font-weight:1000;letter-spacing:.11em;text-transform:uppercase
 }
-.overlay[hidden]{display:none}
-.modal{
-  width:min(520px,92vw);padding:32px 28px;text-align:center;
-  border:1px solid rgba(255,255,255,.27);border-radius:28px;
-  background:linear-gradient(155deg,rgba(4,79,133,.98),rgba(1,42,80,.99));
-  box-shadow:var(--shadow)
+.feedback p{margin:0;color:#e7f9ff;font-size:13px;line-height:1.42}
+.next-btn{
+  width:100%;min-height:48px;margin-top:11px;border:1px solid rgba(255,255,255,.36);border-radius:14px;
+  background:rgba(255,255,255,.13);color:#fff;font-weight:900;cursor:pointer
 }
-.modal-icon{
-  width:82px;height:82px;margin:0 auto 13px;border-radius:50%;
-  display:grid;place-items:center;background:rgba(140,240,211,.12);
-  border:2px solid rgba(140,240,211,.70);font-size:38px;box-shadow:0 0 25px rgba(140,240,211,.25)
+.next-btn:hover{background:rgba(255,255,255,.18)}
+
+#endScreen{align-items:center;justify-content:center;padding:26px}
+.end-card{
+  width:min(700px,94vw);padding:clamp(25px,5vw,48px);text-align:center;border-radius:30px;
+  background:linear-gradient(155deg,rgba(4,79,133,.98),rgba(1,42,80,.99));border:1px solid rgba(255,255,255,.25);box-shadow:var(--shadow)
 }
-.modal .eyebrow{margin:0 0 6px;color:#9cebd8;font-size:10px;font-weight:900;letter-spacing:.15em;text-transform:uppercase}
-.modal h2{margin:0 0 9px;font-size:clamp(26px,4vw,38px)}
-.modal p{margin:0 0 20px;color:#d8f4ff;line-height:1.45}
-.primary{
-  padding:12px 22px;border:1px solid #fff;border-radius:999px;
-  background:linear-gradient(180deg,#fff,#dff6ff);color:var(--navy);
-  font-weight:900;cursor:pointer
+.end-card h2{margin:4px 0 8px;font-size:clamp(30px,5vw,52px)}
+.end-card>p{margin:0;color:#d5f3ff}
+.score-ring{
+  width:156px;height:156px;margin:24px auto 18px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-direction:column;
+  border:10px solid rgba(255,255,255,.15);box-shadow:inset 0 0 0 3px rgba(102,220,255,.33),0 0 32px rgba(55,194,244,.18)
 }
-.hint{
-  position:absolute;z-index:18;right:12px;bottom:11px;width:min(290px,42%);
-  padding:8px 10px;border-radius:10px;
-  border:1px solid rgba(255,255,255,.16);background:rgba(0,42,80,.60);
-  color:#d9f5ff;font-size:9px;line-height:1.35;pointer-events:none
+.score-ring b{font-size:42px;line-height:1}.score-ring span{margin-top:3px;color:#9de7ff;font-size:10px;font-weight:900;letter-spacing:.14em;text-transform:uppercase}
+.end-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 auto 22px}
+.end-stat{padding:12px;border-radius:15px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12)}
+.end-stat b{display:block;font-size:24px}.end-stat span{display:block;margin-top:3px;color:#bfeeff;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.1em}
+.end-actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
+.small-btn{
+  min-height:50px;padding:11px 20px;border-radius:999px;border:1px solid rgba(255,255,255,.28);
+  background:rgba(255,255,255,.11);color:#fff;font-weight:900;cursor:pointer
 }
-.hint b{color:#fff}
-@media(max-width:720px){
-  #app{gap:7px;padding:calc(7px + var(--safe-top)) calc(7px + var(--safe-right)) calc(7px + var(--safe-bottom)) calc(7px + var(--safe-left))}
-  .topbar{min-height:63px;padding:7px 8px;border-radius:18px;grid-template-columns:48px 1fr 48px}
-  .brand-copy{display:none}.brand-symbol{width:43px;height:43px;transform:scale(.84);transform-origin:left center}
-  .stats{gap:15px}.stat b{font-size:19px}.stat span{font-size:7px}
-  .actions .btn{min-width:44px;min-height:44px;padding:9px 11px}
-  .game-shell{border-radius:20px}
-  .intro{padding:9px 11px;gap:8px}.intro h1{font-size:15px}.intro p{font-size:10px}.demo-pill{font-size:7px;padding:6px 7px}
-  .scene-wrap{padding:8px}
-  .scene{min-height:0}
-  .locker-bank{left:4%;right:4%;top:15%;height:44%;gap:2%}
-  .locker-name{font-size:8px;left:7%;right:7%;padding:4px 2px}
-  .object{left:var(--mx);top:var(--my);width:27%;height:17%;max-width:100px;max-height:95px;border-radius:15px}
-  .bench{left:8%;right:8%;bottom:18%;height:9%}
-  .feedback{min-height:61px;margin:0 8px 8px;padding:8px 10px;border-radius:14px}
-  .feedback-title{font-size:14px}.feedback-text{font-size:10px}
-  .photo-label{font-size:7px;left:8px;bottom:8px}
-  .hint{right:8px;bottom:8px;width:46%;font-size:7px;padding:6px 7px}
+.small-btn.primary{background:linear-gradient(180deg,#fff,#dff6ff);color:var(--navy);border-color:#fff}
+
+@media(max-width:900px){
+  .topbar{grid-template-columns:110px 1fr auto}
+  .brand{font-size:17px}.brand .dot{width:26px;height:26px}
+  .hud-item{min-width:60px;padding:6px}.hud-item b{font-size:16px}
+  .game-shell{grid-template-columns:1fr;grid-template-rows:minmax(190px,42%) minmax(0,1fr)}
+  .challenge{padding:12px}
+  .situation{margin:9px 0;padding:13px;font-size:14px}
+  .answer-btn{min-height:62px}
 }
-@media(max-height:650px){
-  .topbar{min-height:54px}.brand-symbol{transform:scale(.78);transform-origin:left center}.brand-copy span{display:none}
-  .intro{padding:7px 11px}.intro p{display:none}
-  .feedback{min-height:50px;padding:6px 10px}.feedback-title{margin-bottom:2px;font-size:13px}.feedback-text{font-size:9px}
+@media(max-width:620px){
+  #gameScreen{gap:6px;padding:calc(6px + var(--safe-top)) calc(7px + var(--safe-right)) calc(6px + var(--safe-bottom)) calc(7px + var(--safe-left))}
+  .topbar{min-height:54px;padding:6px 8px;border-radius:15px;grid-template-columns:76px 1fr auto}
+  .brand{font-size:14px}.brand .dot{display:none}
+  .progress-box{min-width:110px}
+  .hud{gap:4px}.hud-item{min-width:52px;border-radius:10px}.hud-item span{display:none}
+  .game-shell{padding:7px;gap:7px;border-radius:19px;grid-template-rows:minmax(155px,35%) minmax(0,1fr)}
+  .scene-card,.challenge{border-radius:15px}
+  .scene-badge{left:8px;top:8px;padding:6px 9px;font-size:8px}
+  .challenge h1{font-size:19px}
+  .challenge-kicker{font-size:9px}
+  .situation{font-size:13px;line-height:1.3}
+  .question{font-size:11px;margin-bottom:7px}
+  .answers{gap:6px}
+  .answer-btn{min-height:54px;border-radius:13px;font-size:12px}
+  .answer-btn .symbol{display:inline;margin:0 5px 0 0;font-size:17px}
+  .feedback{padding:10px;margin-top:7px;border-radius:13px}
+  .feedback-head{margin-bottom:5px}.feedback p{font-size:11px}.next-btn{min-height:42px;margin-top:8px}
+}
+@media(max-height:650px) and (min-width:800px){
+  #gameScreen{gap:6px;padding-top:6px;padding-bottom:6px}
+  .topbar{min-height:50px;padding:5px 9px}
+  .game-shell{padding:7px;gap:7px}
+  .challenge{padding:10px}
+  .situation{margin:7px 0;padding:11px;font-size:14px}
+  .answer-btn{min-height:56px}
+  .feedback{padding:9px;margin-top:7px}
 }
 @media(prefers-reduced-motion:reduce){
-  .object,.locker,.locker-door,.btn{transition:none!important}
-  .locker.wrong,.object.wrong,.feedback.animate .feedback-copy{animation:none!important}
+  *,*::before,*::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}
 }
 </style>
 </head>
 <body>
 <div id="app">
-  <header class="topbar">
-    <div class="brand" aria-label="ORICA">
-      <div class="brand-symbol" aria-hidden="true"><i></i><i></i><i></i></div>
-      <div class="brand-copy"><strong>ORICA</strong><span>Dinámica RRHH · Orden y cuidado</span></div>
-    </div>
-
-    <div class="stats" aria-live="polite">
-      <div class="stat"><b id="progress">0/3</b><span>Objetos</span></div>
-      <div class="stat"><b id="attempts">0</b><span>Intentos</span></div>
-      <div class="stat"><b id="points">0</b><span>Puntos</span></div>
-    </div>
-
-    <div class="actions">
-      <button id="restart" class="btn" type="button" aria-label="Reiniciar juego">↻</button>
-    </div>
-  </header>
-
-  <main class="game-shell">
-    <section class="intro">
-      <div class="intro-copy">
-        <h1>Ordena el camerino</h1>
-        <p>Identifica los objetos fuera de lugar y devuélvelos al casillero correcto.</p>
+  <section id="startScreen" class="screen active" aria-label="Inicio">
+    <div class="start-card">
+      <div class="orica-mark"><span class="orica-orbit" aria-hidden="true"></span><span>ORICA</span></div>
+      <p class="eyebrow">Reto rápido</p>
+      <h1 class="start-title">Pon a prueba<br>tus valores</h1>
+      <p class="start-copy">Analiza cada situación y decide si representa una conducta esperada o no esperada. Cada respuesta revela el valor ORICA que está en juego.</p>
+      <div class="start-values" aria-label="Valores ORICA">
+        <span class="value-pill">Integridad</span>
+        <span class="value-pill">Respeto</span>
+        <span class="value-pill">Juntos</span>
+        <span class="value-pill">Seguridad</span>
+        <span class="value-pill">Excelencia</span>
       </div>
-      <div class="demo-pill">Demo visual</div>
-    </section>
+      <button id="startBtn" class="primary-btn" type="button">EMPEZAR</button>
+    </div>
+  </section>
 
-    <div class="scene-wrap">
-      <section id="scene" class="scene" aria-label="Camerino de empleados">
-        <div class="photo-label">Escena provisional · aquí irá la foto real</div>
+  <section id="gameScreen" class="screen" aria-label="Juego Pon a prueba tus valores">
+    <header class="topbar">
+      <div class="brand"><span class="dot" aria-hidden="true"></span><span>ORICA</span></div>
+      <div class="progress-box">
+        <div class="progress-line"><div id="progressFill" class="progress-fill"></div></div>
+        <div id="progressText" class="progress-text">Situación 1 de 12</div>
+      </div>
+      <div class="hud">
+        <div class="hud-item"><b id="score">0</b><span>Puntos</span></div>
+        <div class="hud-item"><b id="streak">0</b><span>Racha</span></div>
+      </div>
+    </header>
 
-        <div class="locker-bank">
-          <div class="locker" data-owner="raul" tabindex="0" role="button" aria-label="Casillero de Raúl Castro">
-            <div class="locker-door"></div>
-            <div class="locker-name">Raúl Castro<span class="locker-code">RC · L-07</span></div>
-            <div class="vents"></div><div class="handle"></div>
-          </div>
-          <div class="locker" data-owner="rojas" tabindex="0" role="button" aria-label="Casillero de M. Rojas">
-            <div class="locker-door"></div>
-            <div class="locker-name">M. Rojas<span class="locker-code">MR · L-08</span></div>
-            <div class="vents"></div><div class="handle"></div>
-          </div>
-          <div class="locker" data-owner="quispe" tabindex="0" role="button" aria-label="Casillero de A. Quispe">
-            <div class="locker-door"></div>
-            <div class="locker-name">A. Quispe<span class="locker-code">AQ · L-09</span></div>
-            <div class="vents"></div><div class="handle"></div>
-          </div>
+    <main class="game-shell">
+      <section class="scene-card" aria-label="Imagen de la situación">
+        <div class="scene-badge">Situación ORICA</div>
+        <img id="sceneImage" alt="" hidden>
+        <div id="scenePlaceholder" class="scene-placeholder">
+          <div class="factory-icon" aria-hidden="true">🏭</div>
+          <strong>Escena situacional</strong>
+          <span>La imagen se conectará en el siguiente paso</span>
         </div>
-
-        <div class="bench"></div>
-
-        <div class="objects-layer">
-          <button class="object" data-id="walkman" data-owner="raul" type="button" aria-label="Walkman marcado R. Castro">
-            <svg viewBox="0 0 120 90" aria-hidden="true">
-              <defs><linearGradient id="wm" x1="0" x2="1"><stop stop-color="#294b65"/><stop offset="1" stop-color="#0d2a40"/></linearGradient></defs>
-              <rect x="21" y="19" width="77" height="57" rx="8" fill="url(#wm)" stroke="#07233a" stroke-width="4"/>
-              <rect x="31" y="28" width="36" height="25" rx="3" fill="#b5ddeb" stroke="#6a94a5" stroke-width="2"/>
-              <circle cx="82" cy="42" r="9" fill="#dce7ea" stroke="#6f8791" stroke-width="3"/>
-              <rect x="32" y="59" width="48" height="6" rx="3" fill="#009fe3"/>
-              <path d="M38 17 C43 0 78 0 85 18" fill="none" stroke="#063d66" stroke-width="6" stroke-linecap="round"/>
-              <path d="M37 14 C28 18 25 30 30 39M86 14 C96 18 99 30 94 39" fill="none" stroke="#009fe3" stroke-width="5" stroke-linecap="round"/>
-            </svg>
-            <span class="tag">R. CASTRO</span>
-          </button>
-
-          <button class="object" data-id="glasses" data-owner="rojas" type="button" aria-label="Lentes de seguridad marcados M. Rojas">
-            <svg viewBox="0 0 120 90" aria-hidden="true">
-              <path d="M13 34 Q28 17 51 31 L48 52 Q28 63 15 48 Z" fill="#d7f7ff" stroke="#087cb0" stroke-width="5"/>
-              <path d="M107 34 Q92 17 69 31 L72 52 Q92 63 105 48 Z" fill="#d7f7ff" stroke="#087cb0" stroke-width="5"/>
-              <path d="M50 35 Q60 27 70 35" fill="none" stroke="#087cb0" stroke-width="5" stroke-linecap="round"/>
-              <path d="M15 34 L4 28M105 34 L116 28" stroke="#063d66" stroke-width="5" stroke-linecap="round"/>
-            </svg>
-            <span class="tag">M. ROJAS</span>
-          </button>
-
-          <button class="object" data-id="badge" data-owner="quispe" type="button" aria-label="Fotocheck marcado A. Quispe">
-            <svg viewBox="0 0 120 90" aria-hidden="true">
-              <path d="M54 8 C38 5 32 16 34 28" fill="none" stroke="#0b4d74" stroke-width="6" stroke-linecap="round"/>
-              <rect x="29" y="24" width="62" height="56" rx="7" fill="#ffffff" stroke="#087cb0" stroke-width="4"/>
-              <rect x="38" y="33" width="20" height="20" rx="10" fill="#8edbf7"/>
-              <path d="M37 65 H82" stroke="#9cb4bf" stroke-width="5" stroke-linecap="round"/>
-              <path d="M66 38 H82M66 47 H79" stroke="#009fe3" stroke-width="4" stroke-linecap="round"/>
-            </svg>
-            <span class="tag">A. QUISPE</span>
-          </button>
-        </div>
-
-        <div class="hint"><b>Cómo jugar:</b> toca un objeto para resaltarlo y arrástralo al casillero que corresponda. También puedes seleccionar el objeto y luego tocar el casillero.</div>
+        <div class="scene-vignette"></div>
       </section>
-    </div>
 
-    <section id="feedback" class="feedback animate" aria-live="polite" aria-atomic="true">
-      <div class="feedback-copy">
-        <h2 id="feedbackTitle" class="feedback-title">Encuentra lo que está fuera de lugar</h2>
-        <p id="feedbackText" class="feedback-text">Los nombres de cada objeto te darán una pista sobre dónde deben guardarse.</p>
+      <section class="challenge">
+        <div class="challenge-top">
+          <p class="challenge-kicker">Observa · Analiza · Decide</p>
+          <h1>¿Esta conducta está bien?</h1>
+        </div>
+
+        <div id="situationText" class="situation"></div>
+
+        <div id="answerArea">
+          <p class="question">Selecciona una respuesta:</p>
+          <div class="answers">
+            <button id="expectedBtn" class="answer-btn expected" type="button">
+              <span class="symbol">✓</span>Conducta esperada
+            </button>
+            <button id="unexpectedBtn" class="answer-btn unexpected" type="button">
+              <span class="symbol">✕</span>Conducta no esperada
+            </button>
+          </div>
+        </div>
+
+        <div id="feedback" class="feedback" hidden aria-live="polite" aria-atomic="true">
+          <div class="feedback-head">
+            <span id="resultChip" class="result-chip"></span>
+            <span id="valueReveal" class="value-reveal"></span>
+          </div>
+          <p id="feedbackText"></p>
+          <button id="nextBtn" class="next-btn" type="button">Siguiente situación →</button>
+        </div>
+      </section>
+    </main>
+  </section>
+
+  <section id="endScreen" class="screen" aria-label="Resultados">
+    <div class="end-card">
+      <p class="eyebrow">Reto completado</p>
+      <h2>Pusiste a prueba tus valores</h2>
+      <p>Tu resultado en esta ronda:</p>
+      <div class="score-ring">
+        <b id="finalAccuracy">0%</b>
+        <span>Aciertos</span>
       </div>
-    </section>
-  </main>
-
-  <div id="win" class="overlay" hidden>
-    <div class="modal">
-      <div class="modal-icon">✓</div>
-      <p class="eyebrow">Actividad completada</p>
-      <h2>Área organizada</h2>
-      <p id="summary">Guardaste todos los objetos en el casillero correcto.</p>
-      <button id="playAgain" class="primary" type="button">Jugar de nuevo</button>
+      <div class="end-stats">
+        <div class="end-stat"><b id="finalScore">0</b><span>Puntos</span></div>
+        <div class="end-stat"><b id="finalCorrect">0/12</b><span>Correctas</span></div>
+        <div class="end-stat"><b id="finalStreak">0</b><span>Mejor racha</span></div>
+      </div>
+      <div class="end-actions">
+        <button id="againBtn" class="small-btn primary" type="button">Jugar de nuevo</button>
+        <button id="homeBtn" class="small-btn" type="button">Inicio</button>
+      </div>
     </div>
-  </div>
+  </section>
 </div>
 
 <script>
 (function(){
-  'use strict';
+  "use strict";
+
+  var TOTAL_ROUNDS = 12;
+
+  var SCENARIOS = [
+    {
+      id:"integridad-devuelve-epp", value:"INTEGRIDAD", expected:true,
+      text:"Encuentras un objeto, herramienta o EPP que un compañero olvidó en el área de trabajo y se lo devuelves.",
+      feedback:"Cuidar lo ajeno también es cuidar la confianza del equipo.",
+      image:"assets/rco/intercambio_de_epp_en_fabrica_orica.png"
+    },
+    {
+      id:"integridad-robo", value:"INTEGRIDAD", expected:false,
+      text:"Una persona toma un casco, bicicleta, laptop o celular que pertenece a otra persona y se lo lleva.",
+      feedback:"Tomar algo que no nos pertenece va contra la integridad y la confianza.",
+      image:null
+    },
+    {
+      id:"integridad-levanta-mano", value:"INTEGRIDAD", expected:true,
+      text:"Un operador detecta un problema y levanta la mano para hablarlo de inmediato con su jefe.",
+      feedback:"Reportar a tiempo y hablar con transparencia protege a todos.",
+      image:null
+    },
+    {
+      id:"integridad-oculta-error", value:"INTEGRIDAD", expected:false,
+      text:"Un operador nota un desperfecto o error operativo y decide ocultarlo para evitar una llamada de atención.",
+      feedback:"Ocultar un error impide corregirlo y puede generar un problema mayor.",
+      image:"assets/rco/operario_oculta_piezas_defectuosas_en_fabrica.png"
+    },
+
+    {
+      id:"respeto-puntual", value:"RESPETO", expected:true,
+      text:"Un trabajador llega puntual al cambio de turno, saluda al equipo y recibe la información del turno anterior.",
+      feedback:"La puntualidad y el buen trato facilitan un cambio de turno ordenado.",
+      image:"assets/rco/saludo_de_equipo_en_fabrica_orica.png"
+    },
+    {
+      id:"respeto-tarde", value:"RESPETO", expected:false,
+      text:"El turno comienza y un trabajador llega tarde a planta sin haber avisado previamente.",
+      feedback:"Llegar tarde afecta al compañero que espera el relevo y al funcionamiento del equipo.",
+      image:null
+    },
+    {
+      id:"respeto-vestidor-limpio", value:"RESPETO", expected:true,
+      text:"Después de cambiarse, una persona deja su casillero y el vestidor limpios y ordenados para los demás.",
+      feedback:"Los espacios compartidos se cuidan pensando también en quien viene después.",
+      image:null
+    },
+    {
+      id:"respeto-vestidor-desorden", value:"RESPETO", expected:false,
+      text:"Una persona deja ropa, toallas y objetos tirados en los vestidores y se retira sin ordenar.",
+      feedback:"Dejar desorden en espacios compartidos afecta a todo el equipo.",
+      image:"assets/rco/desorden_en_vestuarios_de_orica.png"
+    },
+    {
+      id:"respeto-hostigamiento", value:"RESPETO", expected:false,
+      text:"Durante el turno, una persona interrumpe, se burla o hostiga repetidamente a un compañero.",
+      feedback:"El hostigamiento nunca es una broma. El respeto se demuestra en cada interacción.",
+      image:null
+    },
+
+    {
+      id:"juntos-ayuda", value:"JUNTOS", expected:true,
+      text:"Un compañero ve que alguien necesita apoyo con su carga y se acerca para ayudarlo.",
+      feedback:"Trabajar juntos significa apoyar cuando el equipo lo necesita.",
+      image:"assets/rco/colaboracion_en_la_planta_orica.png"
+    },
+    {
+      id:"juntos-ignora", value:"JUNTOS", expected:false,
+      text:"Una persona ve a un compañero que necesita ayuda urgente y decide cruzarse de brazos e ignorarlo.",
+      feedback:"El trabajo en equipo requiere involucrarse y no dejar solo a quien necesita apoyo.",
+      image:null
+    },
+    {
+      id:"juntos-a3", value:"JUNTOS", expected:true,
+      text:"El equipo participa activamente en un proyecto A3, comparte ideas y construye una solución en conjunto.",
+      feedback:"Las mejores soluciones aparecen cuando compartimos ideas y experiencia.",
+      image:null
+    },
+    {
+      id:"juntos-aislado", value:"JUNTOS", expected:false,
+      text:"Un trabajador se niega a compartir información o buenas prácticas y prefiere trabajar de forma aislada.",
+      feedback:"Guardar conocimiento debilita al equipo; compartirlo nos hace mejores.",
+      image:null
+    },
+    {
+      id:"juntos-celebra", value:"JUNTOS", expected:true,
+      text:"El equipo reconoce y celebra el buen resultado conseguido por otro compañero.",
+      feedback:"Reconocer los logros fortalece la confianza y el sentido de equipo.",
+      image:null
+    },
+
+    {
+      id:"seguridad-take5", value:"SEGURIDAD", expected:true,
+      text:"Antes de iniciar una tarea, el trabajador completa correctamente el Take 5 y revisa los riesgos del área.",
+      feedback:"Detenerse a evaluar los riesgos antes de empezar es parte del trabajo seguro.",
+      image:"assets/rco/checklist_de_seguridad_en_fabrica_orica.png"
+    },
+    {
+      id:"seguridad-omite-take5", value:"SEGURIDAD", expected:false,
+      text:"Una persona firma el Take 5 solo por cumplir, sin observar realmente el área ni evaluar los riesgos.",
+      feedback:"El Take 5 no es un trámite: sirve para identificar peligros antes de actuar.",
+      image:null
+    },
+    {
+      id:"seguridad-charla", value:"SEGURIDAD", expected:true,
+      text:"Antes de comenzar el trabajo, el equipo participa y presta atención durante la charla de 5 minutos.",
+      feedback:"Las charlas ayudan a alinear al equipo y anticipar riesgos.",
+      image:null
+    },
+    {
+      id:"seguridad-epp", value:"SEGURIDAD", expected:true,
+      text:"Un trabajador ingresa al área usando correctamente todos los EPP obligatorios para su tarea.",
+      feedback:"Los EPP funcionan cuando se usan de forma completa y correcta.",
+      image:null
+    },
+    {
+      id:"seguridad-celular", value:"SEGURIDAD", expected:false,
+      text:"Un trabajador usa el celular dentro de un área de planta donde está prohibido y permanece cerca de maquinaria en operación.",
+      feedback:"Las distracciones y el incumplimiento de EPP pueden exponer al trabajador y a los demás.",
+      image:"assets/rco/trabajador_distraido_junto_a_maquinaria_industrial.png"
+    },
+
+    {
+      id:"excelencia-kaizen", value:"EXCELENCIA", expected:true,
+      text:"Una trabajadora detecta una oportunidad de mejora, la registra como Simple Kaizen y la comparte con el equipo.",
+      feedback:"La excelencia también consiste en buscar continuamente una mejor forma de hacer las cosas.",
+      image:"assets/rco/equipo_y_mejora_continua_en_fabrica_orica.png"
+    },
+    {
+      id:"excelencia-atajo", value:"EXCELENCIA", expected:false,
+      text:"Para terminar más rápido, una persona improvisa un atajo que se salta el proceso y puede afectar la calidad del producto.",
+      feedback:"La rapidez no reemplaza al proceso. La calidad se protege haciendo bien el trabajo.",
+      image:null
+    },
+    {
+      id:"excelencia-training", value:"EXCELENCIA", expected:true,
+      text:"Un trabajador completa a tiempo las capacitaciones y entrenamientos programados para su función.",
+      feedback:"Aprender y mantenerse actualizado es parte de hacer un trabajo excelente.",
+      image:null
+    }
+  ];
+
+  var VALUES = ["INTEGRIDAD","RESPETO","JUNTOS","SEGURIDAD","EXCELENCIA"];
 
   var state = {
-    selected:null,
-    solved:0,
-    attempts:0,
-    points:0,
-    drag:null,
-    suppressClick:false
+    deck:[],
+    index:0,
+    score:0,
+    correct:0,
+    streak:0,
+    bestStreak:0,
+    locked:false
   };
+
+  function $(id){ return document.getElementById(id); }
 
   var dom = {
-    scene:document.getElementById('scene'),
-    progress:document.getElementById('progress'),
-    attempts:document.getElementById('attempts'),
-    points:document.getElementById('points'),
-    restart:document.getElementById('restart'),
-    feedback:document.getElementById('feedback'),
-    feedbackTitle:document.getElementById('feedbackTitle'),
-    feedbackText:document.getElementById('feedbackText'),
-    win:document.getElementById('win'),
-    summary:document.getElementById('summary'),
-    playAgain:document.getElementById('playAgain')
+    startScreen:$("startScreen"),
+    gameScreen:$("gameScreen"),
+    endScreen:$("endScreen"),
+    startBtn:$("startBtn"),
+    againBtn:$("againBtn"),
+    homeBtn:$("homeBtn"),
+    progressFill:$("progressFill"),
+    progressText:$("progressText"),
+    score:$("score"),
+    streak:$("streak"),
+    sceneImage:$("sceneImage"),
+    scenePlaceholder:$("scenePlaceholder"),
+    situationText:$("situationText"),
+    expectedBtn:$("expectedBtn"),
+    unexpectedBtn:$("unexpectedBtn"),
+    feedback:$("feedback"),
+    resultChip:$("resultChip"),
+    valueReveal:$("valueReveal"),
+    feedbackText:$("feedbackText"),
+    nextBtn:$("nextBtn"),
+    finalAccuracy:$("finalAccuracy"),
+    finalScore:$("finalScore"),
+    finalCorrect:$("finalCorrect"),
+    finalStreak:$("finalStreak")
   };
 
-  var names = {
-    raul:'RAÚL CASTRO',
-    rojas:'M. ROJAS',
-    quispe:'A. QUISPE'
-  };
-
-  function objects(){
-    return Array.prototype.slice.call(document.querySelectorAll('.object'));
+  function shuffle(input){
+    var a=input.slice();
+    for(var i=a.length-1;i>0;i--){
+      var j=Math.floor(Math.random()*(i+1));
+      var t=a[i]; a[i]=a[j]; a[j]=t;
+    }
+    return a;
   }
 
-  function lockers(){
-    return Array.prototype.slice.call(document.querySelectorAll('.locker'));
+  function pickOne(list){
+    return list[Math.floor(Math.random()*list.length)];
   }
 
-  function updateStats(){
-    dom.progress.textContent = state.solved + '/3';
-    dom.attempts.textContent = String(state.attempts);
-    dom.points.textContent = String(state.points);
-  }
-
-  function setFeedback(type,title,text){
-    dom.feedback.classList.remove('success','error','animate');
-    if(type){ dom.feedback.classList.add(type); }
-    dom.feedbackTitle.textContent = title;
-    dom.feedbackText.textContent = text;
-    void dom.feedback.offsetWidth;
-    dom.feedback.classList.add('animate');
-  }
-
-  function selectItem(item){
-    if(!item || item.classList.contains('placed')) return;
-    objects().forEach(function(el){ el.classList.toggle('selected',el === item); });
-    lockers().forEach(function(el){ el.classList.remove('targeted'); });
-    state.selected = item;
-    setFeedback('', 'OBJETO SELECCIONADO', 'Ahora arrástralo o toca el casillero correcto.');
-  }
-
-  function lockerAtPoint(x,y){
-    var hit = null;
-    lockers().forEach(function(locker){
-      var r = locker.getBoundingClientRect();
-      if(x >= r.left && x <= r.right && y >= r.top && y <= r.bottom){ hit = locker; }
+  function buildDeck(){
+    var selected=[];
+    VALUES.forEach(function(value){
+      var positive=SCENARIOS.filter(function(s){return s.value===value && s.expected;});
+      var negative=SCENARIOS.filter(function(s){return s.value===value && !s.expected;});
+      if(positive.length) selected.push(pickOne(positive));
+      if(negative.length) selected.push(pickOne(negative));
     });
-    return hit;
+
+    var used={};
+    selected.forEach(function(s){used[s.id]=true;});
+
+    var remaining=shuffle(SCENARIOS.filter(function(s){return !used[s.id];}));
+    while(selected.length<TOTAL_ROUNDS && remaining.length){
+      selected.push(remaining.shift());
+    }
+    return shuffle(selected).slice(0,TOTAL_ROUNDS);
   }
 
-  function clearLockerHighlights(){
-    lockers().forEach(function(el){ el.classList.remove('targeted'); });
+  function showScreen(screen){
+    [dom.startScreen,dom.gameScreen,dom.endScreen].forEach(function(s){s.classList.remove("active");});
+    screen.classList.add("active");
   }
 
-  function highlightLockerAtPoint(x,y){
-    var hit = lockerAtPoint(x,y);
-    lockers().forEach(function(el){ el.classList.toggle('targeted',el === hit); });
+  function resetState(){
+    state.deck=buildDeck();
+    state.index=0;
+    state.score=0;
+    state.correct=0;
+    state.streak=0;
+    state.bestStreak=0;
+    state.locked=false;
   }
 
-  function settleItem(item){
-    item.classList.remove('dragging');
-    item.classList.add('returning');
-    item.style.setProperty('--dx','0px');
-    item.style.setProperty('--dy','0px');
-    setTimeout(function(){ item.classList.remove('returning'); },380);
+  function updateHud(){
+    var shown=Math.min(state.index+1,TOTAL_ROUNDS);
+    dom.progressText.textContent="Situación "+shown+" de "+TOTAL_ROUNDS;
+    dom.progressFill.style.width=((state.index/TOTAL_ROUNDS)*100)+"%";
+    dom.score.textContent=String(state.score);
+    dom.streak.textContent=state.streak>0 ? "🔥 "+state.streak : "0";
   }
 
-  function wrongAttempt(item,locker){
-    state.attempts += 1;
-    state.points = Math.max(0,state.points - 25);
-    updateStats();
-    locker.classList.remove('wrong');
-    item.classList.remove('wrong');
-    void locker.offsetWidth;
-    locker.classList.add('wrong');
-    item.classList.add('wrong');
-    setFeedback('error','ESE NO ES SU CASILLERO','Revisa el nombre del objeto y compáralo con la etiqueta del casillero.');
-    setTimeout(function(){ locker.classList.remove('wrong'); item.classList.remove('wrong'); },560);
-    settleItem(item);
+  function setSceneImage(src,alt){
+    dom.sceneImage.hidden=true;
+    dom.scenePlaceholder.hidden=false;
+    dom.sceneImage.removeAttribute("src");
+    dom.sceneImage.alt=alt || "";
+
+    if(!src) return;
+
+    dom.sceneImage.onload=function(){
+      dom.scenePlaceholder.hidden=true;
+      dom.sceneImage.hidden=false;
+    };
+    dom.sceneImage.onerror=function(){
+      dom.sceneImage.hidden=true;
+      dom.scenePlaceholder.hidden=false;
+    };
+    dom.sceneImage.src=src;
   }
 
-  function correctAttempt(item,locker,fromDrag){
-    state.attempts += 1;
-    state.solved += 1;
-    state.points += 100;
-    updateStats();
+  function clearAnswerState(){
+    state.locked=false;
+    dom.feedback.hidden=true;
+    dom.expectedBtn.disabled=false;
+    dom.unexpectedBtn.disabled=false;
+    dom.expectedBtn.classList.remove("correct-choice","wrong-choice");
+    dom.unexpectedBtn.classList.remove("correct-choice","wrong-choice");
+  }
 
-    clearLockerHighlights();
-    item.classList.remove('dragging','selected');
-    locker.classList.add('correct');
+  function renderScenario(){
+    if(state.index>=state.deck.length){
+      finishGame();
+      return;
+    }
 
-    if(fromDrag){
-      item.animate(
-        [
-          {opacity:1,transform:getComputedStyle(item).transform},
-          {opacity:.08,transform:getComputedStyle(item).transform + ' scale(.32)'}
-        ],
-        {duration:360,easing:'cubic-bezier(.2,.78,.25,1)',fill:'forwards'}
-      ).onfinish = function(){
-        item.classList.add('placed');
-        item.style.opacity = '0';
-      };
+    clearAnswerState();
+
+    var s=state.deck[state.index];
+    dom.situationText.textContent=s.text;
+    setSceneImage(s.image,"Situación de "+s.value);
+    updateHud();
+  }
+
+  function answer(choice){
+    if(state.locked) return;
+    state.locked=true;
+
+    var s=state.deck[state.index];
+    var correct=choice===s.expected;
+    var chosenBtn=choice ? dom.expectedBtn : dom.unexpectedBtn;
+    var correctBtn=s.expected ? dom.expectedBtn : dom.unexpectedBtn;
+
+    dom.expectedBtn.disabled=true;
+    dom.unexpectedBtn.disabled=true;
+
+    if(correct){
+      state.correct++;
+      state.streak++;
+      state.bestStreak=Math.max(state.bestStreak,state.streak);
+      var bonus=Math.min(100,(state.streak-1)*20);
+      state.score+=100+bonus;
+      chosenBtn.classList.add("correct-choice");
+      dom.resultChip.className="result-chip good";
+      dom.resultChip.textContent=bonus>0 ? "✓ Correcto · +"+(100+bonus) : "✓ Correcto · +100";
     }else{
-      var a = item.getBoundingClientRect();
-      var b = locker.getBoundingClientRect();
-      var dx = (b.left+b.width/2) - (a.left+a.width/2);
-      var dy = (b.top+b.height/2) - (a.top+a.height/2);
-      item.animate(
-        [
-          {opacity:1,transform:'translate(0px,0px) scale(1)'},
-          {opacity:.08,transform:'translate('+dx+'px,'+dy+'px) scale(.32)'}
-        ],
-        {duration:470,easing:'cubic-bezier(.2,.78,.25,1)',fill:'forwards'}
-      ).onfinish = function(){
-        item.classList.add('placed');
-        item.style.opacity = '0';
-      };
+      state.streak=0;
+      chosenBtn.classList.add("wrong-choice");
+      correctBtn.classList.add("correct-choice");
+      dom.resultChip.className="result-chip bad";
+      dom.resultChip.textContent="✕ No exactamente";
     }
 
-    setTimeout(function(){
-      locker.classList.add('closed');
-      setTimeout(function(){ locker.classList.remove('correct'); },650);
-    },180);
+    dom.valueReveal.textContent=s.value;
+    dom.feedbackText.textContent=s.feedback;
+    dom.feedback.hidden=false;
 
-    setFeedback('success','CORRECTO · '+names[item.dataset.owner],'Objeto guardado. El casillero queda cerrado y asegurado.');
-    state.selected = null;
+    dom.score.textContent=String(state.score);
+    dom.streak.textContent=state.streak>0 ? "🔥 "+state.streak : "0";
+    dom.progressFill.style.width=(((state.index+1)/TOTAL_ROUNDS)*100)+"%";
 
-    if(state.solved === 3){
-      setTimeout(showWin,900);
-    }
+    dom.nextBtn.textContent=state.index===TOTAL_ROUNDS-1 ? "Ver resultado →" : "Siguiente situación →";
   }
 
-  function attemptPlace(item,locker,fromDrag){
-    if(!item || !locker || item.classList.contains('placed')) return;
-    if(item.dataset.owner === locker.dataset.owner){
-      correctAttempt(item,locker,fromDrag);
-    }else{
-      wrongAttempt(item,locker);
-    }
+  function next(){
+    if(!state.locked) return;
+    state.index++;
+    renderScenario();
   }
 
-  function showWin(){
-    dom.summary.textContent = 'Completaste la escena en '+state.attempts+' intentos y obtuviste '+state.points+' puntos.';
-    dom.win.hidden = false;
+  function startGame(){
+    resetState();
+    showScreen(dom.gameScreen);
+    renderScenario();
   }
 
-  function resetGame(){
-    state.selected = null;
-    state.solved = 0;
-    state.attempts = 0;
-    state.points = 0;
-    state.drag = null;
-    state.suppressClick = false;
-    updateStats();
-    dom.win.hidden = true;
-
-    objects().forEach(function(item){
-      if(item.getAnimations){ item.getAnimations().forEach(function(a){ a.cancel(); }); }
-      item.classList.remove('selected','dragging','returning','placed','wrong');
-      item.style.removeProperty('opacity');
-      item.style.setProperty('--dx','0px');
-      item.style.setProperty('--dy','0px');
-    });
-
-    lockers().forEach(function(locker){
-      locker.classList.remove('closed','correct','wrong','targeted');
-    });
-
-    setFeedback('','ENCUENTRA LO QUE ESTÁ FUERA DE LUGAR','Los nombres de cada objeto te darán una pista sobre dónde deben guardarse.');
+  function finishGame(){
+    var accuracy=Math.round((state.correct/TOTAL_ROUNDS)*100);
+    dom.finalAccuracy.textContent=accuracy+"%";
+    dom.finalScore.textContent=String(state.score);
+    dom.finalCorrect.textContent=state.correct+"/"+TOTAL_ROUNDS;
+    dom.finalStreak.textContent=String(state.bestStreak);
+    showScreen(dom.endScreen);
   }
 
-  objects().forEach(function(item){
-    item.addEventListener('pointerdown',function(e){
-      if(item.classList.contains('placed')) return;
-      e.preventDefault();
-      selectItem(item);
-      state.suppressClick = false;
-      state.drag = {
-        item:item,
-        pointerId:e.pointerId,
-        startX:e.clientX,
-        startY:e.clientY,
-        dx:0,
-        dy:0,
-        moved:false
-      };
-      item.setPointerCapture(e.pointerId);
-      item.classList.add('dragging');
-    });
+  function goHome(){
+    showScreen(dom.startScreen);
+  }
 
-    item.addEventListener('pointermove',function(e){
-      if(!state.drag || state.drag.item !== item || state.drag.pointerId !== e.pointerId) return;
-      e.preventDefault();
-      var dx = e.clientX - state.drag.startX;
-      var dy = e.clientY - state.drag.startY;
-      state.drag.dx = dx;
-      state.drag.dy = dy;
-      if(Math.hypot(dx,dy) > 7){ state.drag.moved = true; }
-      item.style.setProperty('--dx',dx+'px');
-      item.style.setProperty('--dy',dy+'px');
-      highlightLockerAtPoint(e.clientX,e.clientY);
-    });
+  dom.startBtn.addEventListener("click",startGame);
+  dom.againBtn.addEventListener("click",startGame);
+  dom.homeBtn.addEventListener("click",goHome);
+  dom.expectedBtn.addEventListener("click",function(){answer(true);});
+  dom.unexpectedBtn.addEventListener("click",function(){answer(false);});
+  dom.nextBtn.addEventListener("click",next);
 
-    function endDrag(e){
-      if(!state.drag || state.drag.item !== item || state.drag.pointerId !== e.pointerId) return;
-      var moved = state.drag.moved;
-      var locker = lockerAtPoint(e.clientX,e.clientY);
-      state.drag = null;
-      clearLockerHighlights();
-
-      if(moved){
-        state.suppressClick = true;
-        if(locker){
-          attemptPlace(item,locker,true);
-        }else{
-          settleItem(item);
-          setFeedback('','OBJETO SELECCIONADO','Suelta el objeto dentro de un casillero para comprobarlo.');
-        }
-      }else{
-        item.classList.remove('dragging');
-        item.style.setProperty('--dx','0px');
-        item.style.setProperty('--dy','0px');
-      }
-    }
-
-    item.addEventListener('pointerup',endDrag);
-    item.addEventListener('pointercancel',function(e){
-      if(state.drag && state.drag.item === item){
-        state.drag = null;
-        clearLockerHighlights();
-        settleItem(item);
-      }
-    });
-
-    item.addEventListener('click',function(e){
-      if(state.suppressClick){
-        state.suppressClick = false;
-        e.preventDefault();
-        return;
-      }
-      selectItem(item);
-    });
+  document.addEventListener("keydown",function(e){
+    if(!dom.gameScreen.classList.contains("active")) return;
+    if(state.locked && (e.key==="Enter" || e.key===" ")){ e.preventDefault(); next(); return; }
+    if(state.locked) return;
+    if(e.key==="ArrowLeft" || e.key==="1"){ answer(true); }
+    if(e.key==="ArrowRight" || e.key==="2"){ answer(false); }
   });
-
-  lockers().forEach(function(locker){
-    function choose(){
-      if(state.selected && !state.selected.classList.contains('placed')){
-        attemptPlace(state.selected,locker,false);
-      }else{
-        setFeedback('','PRIMERO ELIGE UN OBJETO','Toca uno de los objetos fuera de lugar para iluminarlo.');
-      }
-    }
-    locker.addEventListener('click',choose);
-    locker.addEventListener('keydown',function(e){
-      if(e.key === 'Enter' || e.key === ' '){
-        e.preventDefault();
-        choose();
-      }
-    });
-  });
-
-  dom.restart.addEventListener('click',resetGame);
-  dom.playAgain.addEventListener('click',resetGame);
-
-  updateStats();
 })();
 </script>
 </body>
