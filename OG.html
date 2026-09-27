@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#003f76">
+<title>ORICA · Valores en acción</title>
+<style>
+:root{
+  --navy:#003b70;
+  --navy2:#052d59;
+  --blue:#009fe3;
+  --cyan:#69dcff;
+  --white:#fff;
+  --ice:#e7f8ff;
+  --panel:rgba(255,255,255,.11);
+  --line:rgba(255,255,255,.20);
+  --shadow:0 28px 80px rgba(0,24,56,.36);
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-right:env(safe-area-inset-right,0px);
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+  --safe-left:env(safe-area-inset-left,0px);
+}
+*{box-sizing:border-box}
+html,body{width:100%;height:100%;margin:0;overflow:hidden}
+body{
+  font-family:Inter,Segoe UI,Arial,sans-serif;color:#fff;
+  background:
+    radial-gradient(circle at 18% 12%,rgba(85,210,250,.42),transparent 28%),
+    radial-gradient(circle at 86% 82%,rgba(0,159,227,.24),transparent 32%),
+    linear-gradient(145deg,#00558f 0%,#003b70 48%,#01264b 100%);
+  -webkit-tap-highlight-color:transparent;user-select:none;
+}
+body::before{
+  content:"";position:fixed;inset:-30%;pointer-events:none;opacity:.17;
+  background:repeating-radial-gradient(circle at 50% 52%,transparent 0 44px,rgba(115,222,255,.42) 45px 48px,transparent 49px 92px);
+}
+button{font:inherit}
+[hidden]{display:none!important}
+
+#launcher{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  padding:calc(24px + var(--safe-top)) calc(24px + var(--safe-right)) calc(24px + var(--safe-bottom)) calc(24px + var(--safe-left));
+}
+.launch-card{
+  width:min(980px,95vw);padding:clamp(28px,4.5vw,54px);border-radius:34px;
+  border:1px solid rgba(255,255,255,.22);
+  background:linear-gradient(150deg,rgba(255,255,255,.16),rgba(255,255,255,.065));
+  box-shadow:var(--shadow);backdrop-filter:blur(14px);text-align:center;
+}
+.brand{
+  display:inline-flex;align-items:center;gap:11px;margin-bottom:10px;
+  font-weight:1000;font-style:italic;font-size:clamp(28px,5vw,52px);letter-spacing:.04em
+}
+.orbit{width:52px;height:52px;position:relative;display:inline-block;transform:rotate(-14deg)}
+.orbit::before,.orbit::after{
+  content:"";position:absolute;border-radius:50%;border:8px solid var(--cyan)
+}
+.orbit::before{inset:8px 11px;transform:rotate(30deg)}
+.orbit::after{inset:16px 3px;border-color:#fff;transform:rotate(-28deg)}
+.kicker{margin:0 0 8px;color:#98e8ff;font-size:11px;font-weight:950;letter-spacing:.17em;text-transform:uppercase}
+h1{margin:0;font-size:clamp(34px,6vw,68px);line-height:1;letter-spacing:-.035em}
+.lead{width:min(660px,100%);margin:15px auto 28px;color:#d4f3ff;font-size:clamp(15px,2vw,19px);line-height:1.5}
+.game-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;max-width:820px;margin:0 auto}
+.game-option{
+  position:relative;min-height:230px;padding:24px 22px;border-radius:25px;border:1px solid rgba(255,255,255,.22);
+  background:linear-gradient(155deg,rgba(255,255,255,.12),rgba(0,65,119,.26));
+  color:#fff;cursor:pointer;text-align:left;overflow:hidden;
+  transition:transform .16s ease,filter .16s ease,border-color .16s ease;
+}
+.game-option:hover{transform:translateY(-3px);filter:brightness(1.06);border-color:rgba(123,226,255,.62)}
+.game-option:active{transform:scale(.985)}
+.game-option::after{
+  content:"";position:absolute;right:-46px;bottom:-74px;width:190px;height:190px;border:34px solid rgba(104,222,255,.09);border-radius:50%
+}
+.icon-wrap{
+  width:62px;height:62px;margin-bottom:18px;display:grid;place-items:center;border-radius:18px;
+  background:linear-gradient(145deg,rgba(99,221,255,.22),rgba(255,255,255,.09));
+  border:1px solid rgba(255,255,255,.18)
+}
+.icon-wrap svg{width:34px;height:34px;stroke:#fff;stroke-width:1.9;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.game-option h2{margin:0 0 8px;font-size:clamp(23px,3vw,34px);letter-spacing:-.02em}
+.game-option p{margin:0;color:#cfefff;font-size:14px;line-height:1.42;max-width:320px}
+.play-label{
+  display:inline-flex;align-items:center;gap:7px;margin-top:19px;padding:8px 12px;border-radius:999px;
+  background:rgba(255,255,255,.11);border:1px solid rgba(255,255,255,.16);
+  font-size:11px;font-weight:950;letter-spacing:.08em;text-transform:uppercase
+}
+
+#gameShell{position:absolute;inset:0;display:flex;flex-direction:column;background:#003b70}
+.gamebar{
+  position:relative;z-index:5;flex:0 0 auto;min-height:58px;
+  display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;
+  padding:calc(7px + var(--safe-top)) calc(10px + var(--safe-right)) 7px calc(10px + var(--safe-left));
+  border-bottom:1px solid rgba(255,255,255,.15);
+  background:linear-gradient(180deg,rgba(0,50,95,.98),rgba(0,41,80,.96));
+  box-shadow:0 9px 24px rgba(0,19,44,.22)
+}
+.mini-brand{display:flex;align-items:center;gap:8px;font-weight:1000;font-style:italic;letter-spacing:.04em}
+.mini-brand .mini-orbit{width:29px;height:29px;border:6px solid #65dfff;border-radius:50%;position:relative}
+.mini-brand .mini-orbit::after{content:"";position:absolute;inset:5px -5px;border:5px solid #fff;border-radius:50%;transform:rotate(58deg)}
+.current-game{text-align:center;font-size:12px;font-weight:950;letter-spacing:.12em;text-transform:uppercase;color:#bdeeff}
+.gamebar-actions{justify-self:end;display:flex;gap:7px}
+.shell-btn{
+  min-height:40px;padding:8px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.22);
+  background:rgba(255,255,255,.10);color:#fff;font-weight:900;cursor:pointer
+}
+.shell-btn:hover{background:rgba(255,255,255,.16)}
+.shell-btn.primary{background:linear-gradient(180deg,#fff,#dff7ff);color:var(--navy);border-color:#fff}
+#gameFrame{flex:1 1 auto;width:100%;min-height:0;border:0;background:#003b70}
+
+@media(max-width:700px){
+  #launcher{padding:12px}
+  .launch-card{padding:24px 15px;border-radius:24px}
+  .brand{font-size:28px}.orbit{width:40px;height:40px}
+  .game-options{grid-template-columns:1fr;gap:10px}
+  .game-option{min-height:150px;padding:18px}
+  .icon-wrap{width:48px;height:48px;margin-bottom:11px;border-radius:14px}
+  .icon-wrap svg{width:27px;height:27px}
+  .game-option h2{font-size:24px}.game-option p{font-size:12px}.play-label{margin-top:12px}
+  .gamebar{grid-template-columns:auto 1fr auto;min-height:52px;padding-top:calc(5px + var(--safe-top));padding-bottom:5px}
+  .mini-brand span:last-child{display:none}
+  .current-game{font-size:9px;letter-spacing:.08em}
+  .shell-btn{min-height:37px;padding:7px 10px;font-size:11px}
+  #restartGame{display:none}
+}
+@media(max-height:620px) and (min-width:701px){
+  .launch-card{padding:25px 36px}
+  .lead{margin:9px auto 17px}
+  .game-option{min-height:175px;padding:18px}
+  .icon-wrap{width:48px;height:48px;margin-bottom:10px}
+  .play-label{margin-top:10px}
+}
+@media(prefers-reduced-motion:reduce){
+  .game-option{transition:none}
+}
+</style>
+</head>
+<body>
+<section id="launcher" aria-label="Selector de juegos">
+  <div class="launch-card">
+    <div class="brand"><span class="orbit" aria-hidden="true"></span><span>ORICA</span></div>
+    <p class="kicker">Valores en acción</p>
+    <h1>¿A qué quieres jugar?</h1>
+    <p class="lead">Dos experiencias rápidas para descubrir, reconocer y poner en práctica los valores ORICA.</p>
+
+    <div class="game-options">
+      <button class="game-option" type="button" data-game="memory">
+        <span class="icon-wrap" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <rect x="3" y="4" width="8" height="10" rx="2"></rect>
+            <rect x="13" y="10" width="8" height="10" rx="2"></rect>
+            <path d="M7 8h.01M17 14h.01"></path>
+          </svg>
+        </span>
+        <h2>Memoria de valores</h2>
+        <p>Encuentra las parejas y descubre ejemplos de cada valor.</p>
+        <span class="play-label">Jugar memoria →</span>
+      </button>
+
+      <button class="game-option" type="button" data-game="challenge">
+        <span class="icon-wrap" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 3a9 9 0 1 0 9 9"></path>
+            <path d="M12 7v5l3 2"></path>
+            <path d="m16.5 4.5 1.3 1.3L21 2.6"></path>
+          </svg>
+        </span>
+        <h2>Reto de valores</h2>
+        <p>Analiza situaciones y decide si representan una conducta esperada.</p>
+        <span class="play-label">Aceptar el reto →</span>
+      </button>
+    </div>
+  </div>
+</section>
+
+<section id="gameShell" hidden aria-label="Juego seleccionado">
+  <header class="gamebar">
+    <div class="mini-brand"><span class="mini-orbit" aria-hidden="true"></span><span>ORICA</span></div>
+    <div id="currentGame" class="current-game">Memoria de valores</div>
+    <div class="gamebar-actions">
+      <button id="restartGame" class="shell-btn" type="button">↻ Reiniciar</button>
+      <button id="chooseGame" class="shell-btn primary" type="button">Elegir juego</button>
+    </div>
+  </header>
+  <iframe id="gameFrame" title="Juego ORICA" allow="fullscreen" loading="eager"></iframe>
+</section>
+
+<script>
+(function(){
+  "use strict";
+
+  var launcher=document.getElementById("launcher");
+  var shell=document.getElementById("gameShell");
+  var frame=document.getElementById("gameFrame");
+  var currentGame=document.getElementById("currentGame");
+  var chooseGame=document.getElementById("chooseGame");
+  var restartGame=document.getElementById("restartGame");
+
+  var games={
+    memory:{label:"Memoria de valores",src:"orica.html"},
+    challenge:{label:"Reto de valores",src:"RCO.html"}
+  };
+
+  var activeGame=null;
+
+  function openGame(key){
+    var game=games[key];
+    if(!game) return;
+    activeGame=key;
+    currentGame.textContent=game.label;
+    launcher.hidden=true;
+    shell.hidden=false;
+    frame.src=game.src;
+  }
+
+  function backToGames(){
+    activeGame=null;
+    frame.src="about:blank";
+    shell.hidden=true;
+    launcher.hidden=false;
+  }
+
+  function restart(){
+    if(!activeGame) return;
+    frame.src=games[activeGame].src;
+  }
+
+  document.querySelectorAll("[data-game]").forEach(function(btn){
+    btn.addEventListener("click",function(){openGame(btn.dataset.game);});
+  });
+
+  chooseGame.addEventListener("click",backToGames);
+  restartGame.addEventListener("click",restart);
+
+  document.addEventListener("keydown",function(e){
+    if(e.key==="Escape" && !shell.hidden) backToGames();
+  });
+})();
+</script>
+</body>
+</html>
