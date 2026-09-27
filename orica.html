@@ -514,6 +514,18 @@ img{display:block;pointer-events:none;-webkit-user-drag:none}
       dom.board.style.setProperty("--rows",best.rows);
       dom.board.style.setProperty("--card-w",`${best.itemW}px`);
       dom.board.style.setProperty("--card-h",`${best.itemH}px`);
+
+      const cards=[...dom.board.children];
+      cards.forEach(card=>{ card.style.left="0px"; });
+
+      const remainder=total % best.cols;
+      if(remainder>0) {
+        const lastRowStart=total-remainder;
+        const offset=((best.cols-remainder)*(best.itemW+gap))/2;
+        cards.slice(lastRowStart).forEach(card=>{
+          card.style.left=`${offset}px`;
+        });
+      }
     }
   }
 
