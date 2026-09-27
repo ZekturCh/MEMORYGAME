@@ -101,19 +101,42 @@ h1{margin:0;font-size:clamp(34px,6vw,68px);line-height:1;letter-spacing:-.035em}
 #gameFrame{flex:1 1 auto;width:100%;min-height:0;border:0;background:#003b70}
 
 @media(max-width:700px){
-  #launcher{padding:12px}
-  .launch-card{padding:24px 15px;border-radius:24px}
-  .real-logo{width:min(270px,72vw)}
-  .game-options{grid-template-columns:1fr;gap:10px}
-  .game-option{min-height:150px;padding:18px}
-  .icon-wrap{width:48px;height:48px;margin-bottom:11px;border-radius:14px}
-  .icon-wrap svg{width:27px;height:27px}
-  .game-option h2{font-size:24px}.game-option p{font-size:12px}.play-label{margin-top:12px}
-  .gamebar{grid-template-columns:auto 1fr auto;min-height:52px;padding-top:calc(5px + var(--safe-top));padding-bottom:5px}
-  .mini-logo{width:76px;height:26px}
-  .current-game{font-size:9px;letter-spacing:.08em}
-  .shell-btn{min-height:37px;padding:7px 10px;font-size:11px}
+  #launcher{align-items:flex-start;overflow-y:auto;padding:8px}
+  .launch-card{width:100%;padding:16px 12px;border-radius:22px;margin:auto 0}
+  .real-logo{width:min(220px,68vw);max-height:76px}
+  .kicker{font-size:9px;margin-bottom:5px}
+  h1{font-size:clamp(32px,11vw,44px);line-height:.98}
+  .lead{margin:10px auto 14px;font-size:13px;line-height:1.35}
+  .game-options{grid-template-columns:1fr;gap:8px}
+  .game-option{min-height:0;padding:13px 14px;border-radius:19px}
+  .icon-wrap{width:42px;height:42px;margin-bottom:8px;border-radius:12px}
+  .icon-wrap svg{width:24px;height:24px}
+  .game-option h2{font-size:21px;margin-bottom:5px}
+  .game-option p{font-size:11.5px;line-height:1.3}
+  .play-label{margin-top:9px;padding:6px 10px;font-size:9px}
+  .gamebar{
+    grid-template-columns:auto 1fr auto;min-height:44px;
+    padding:calc(3px + var(--safe-top)) 6px 3px;
+  }
+  .mini-logo{width:68px;height:23px}
+  .current-game{font-size:8px;letter-spacing:.07em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .shell-btn{min-height:32px;padding:5px 8px;font-size:10px}
   #restartGame{display:none}
+}
+@media(max-width:420px) and (max-height:650px){
+  #launcher{padding:5px}
+  .launch-card{padding:10px;border-radius:18px}
+  .real-logo{width:min(185px,62vw);max-height:58px}
+  .kicker{font-size:8px;margin-bottom:3px}
+  h1{font-size:32px}
+  .lead{margin:7px auto 9px;font-size:11.5px;line-height:1.25}
+  .game-options{gap:6px}
+  .game-option{padding:10px 12px;border-radius:16px}
+  .icon-wrap{width:36px;height:36px;margin-bottom:6px}
+  .icon-wrap svg{width:21px;height:21px}
+  .game-option h2{font-size:18px}
+  .game-option p{font-size:10.5px}
+  .play-label{margin-top:7px;padding:5px 9px;font-size:8px}
 }
 @media(max-height:620px) and (min-width:701px){
   .launch-card{padding:25px 36px}
