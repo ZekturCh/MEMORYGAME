@@ -292,6 +292,8 @@ img{display:block;pointer-events:none;-webkit-user-drag:none}
 (() => {
   "use strict";
 
+  const HUB_MODE=new URLSearchParams(location.search).get("hub")==="1";
+
   const CONFIG = {
     totalPairs: 5,
     mismatchDelay: 720,
@@ -573,7 +575,13 @@ img{display:block;pointer-events:none;-webkit-user-drag:none}
   }
 
   function goMenu() {
-    dom.win.hidden=true; state.locked=true; showScreen(dom.menu);
+    dom.win.hidden=true;
+    state.locked=true;
+    if(HUB_MODE && window.parent!==window) {
+      window.parent.postMessage({type:"ORICA_CHOOSE_GAME"},"*");
+      return;
+    }
+    showScreen(dom.menu);
   }
 
   dom.start.addEventListener("click",startGame);
@@ -581,6 +589,11 @@ img{display:block;pointer-events:none;-webkit-user-drag:none}
   dom.again.addEventListener("click",startGame);
   dom.menuBtn.addEventListener("click",goMenu);
   dom.valueFlashSkip.addEventListener("click",requestFastFlashClose);
+
+  if(HUB_MODE) {
+    dom.menuBtn.textContent="Elegir juego";
+    startGame();
+  }
 
   let resizeTimer;
   function onResize() {
