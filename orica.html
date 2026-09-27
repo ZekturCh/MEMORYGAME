@@ -246,16 +246,17 @@ body.portrait-layout .play-panel{
   min-height:0;border-radius:clamp(18px,2.6vw,24px);backdrop-filter:none;
 }
 body.portrait-layout .value-message{
-  min-height:clamp(72px,9.5vh,118px);
-  margin:clamp(7px,1vh,12px) clamp(7px,1vw,12px) 0;
-  padding:clamp(10px,1.2vh,16px) clamp(12px,2vw,22px);
-  border-radius:clamp(14px,2vw,18px);
+  min-height:clamp(92px,10.5vh,140px);
+  margin:clamp(9px,1.1vh,14px) clamp(9px,1.2vw,14px) 0;
+  padding:clamp(14px,1.5vh,20px) clamp(16px,2.4vw,26px);
+  border-radius:clamp(15px,2.2vw,20px);
 }
 body.portrait-layout .value-title{font-size:clamp(21px,3.5vw,29px)}
 body.portrait-layout .value-phrase,
 body.portrait-layout .value-message.initial .value-phrase{font-size:clamp(16px,2.9vw,21px);line-height:1.38}
 body.portrait-layout .board{
-  gap:clamp(8px,1.2vw,15px);padding:clamp(8px,1.2vw,14px);
+  gap:clamp(12px,1.7vw,20px);padding:clamp(12px,1.8vw,20px);
+  align-content:space-evenly;
 }
 body.portrait-layout .card{filter:none;contain:layout paint style}
 body.portrait-layout .inner{
@@ -567,12 +568,14 @@ body.portrait-layout.hub-mode .stats{justify-self:center}
     const gap=parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--gap")) || 12;
     const w=Math.max(0,r.width-padX), h=Math.max(0,r.height-padY);
     let best=null;
-    for(let cols=1;cols<=total;cols++) {
+    const isPortrait=document.body.classList.contains("portrait-layout");
+    const candidateCols=isPortrait ? [3] : Array.from({length:total},(_,i)=>i+1);
+    for(const cols of candidateCols) {
       const rows=Math.ceil(total/cols);
       const cellW=(w-gap*(cols-1))/cols;
       const cellH=(h-gap*(rows-1))/rows;
       if(cellW<=0||cellH<=0) continue;
-      const maxCardWidth=document.body.classList.contains("portrait-layout") ? Math.max(CONFIG.maxCardWidth,330) : CONFIG.maxCardWidth;
+      const maxCardWidth=isPortrait ? Number.POSITIVE_INFINITY : CONFIG.maxCardWidth;
       const itemW=Math.min(cellW,cellH*CONFIG.cardAspectRatio,maxCardWidth);
       const itemH=itemW/CONFIG.cardAspectRatio;
       if(!best || itemW>best.itemW) best={cols,rows,itemW,itemH};
