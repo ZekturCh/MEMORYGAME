@@ -291,7 +291,7 @@ img{display:block;max-width:100%;-webkit-user-drag:none}
       <section class="challenge">
         <div class="challenge-top">
           <p class="challenge-kicker">Observa · Analiza · Decide</p>
-          <h1>¿Esta conducta está bien?</h1>
+          <h1>¿Tú qué harías?</h1>
         </div>
 
         <div id="situationText" class="situation"></div>
@@ -300,10 +300,10 @@ img{display:block;max-width:100%;-webkit-user-drag:none}
           <p class="question">Selecciona una respuesta:</p>
           <div class="answers">
             <button id="expectedBtn" class="answer-btn expected" type="button">
-              <span class="symbol">✓</span>Conducta esperada
+              <span class="symbol">✓</span>Lo aprobamos
             </button>
             <button id="unexpectedBtn" class="answer-btn unexpected" type="button">
-              <span class="symbol">✕</span>Conducta no esperada
+              <span class="symbol">✕</span>NO lo aprobamos
             </button>
           </div>
         </div>
@@ -500,6 +500,8 @@ img{display:block;max-width:100%;-webkit-user-drag:none}
     locked:false
   };
 
+  var autoNextTimer=null;
+
   function $(id){ return document.getElementById(id); }
 
   var dom = {
@@ -590,6 +592,8 @@ img{display:block;max-width:100%;-webkit-user-drag:none}
   }
 
   function clearAnswerState(){
+    clearTimeout(autoNextTimer);
+    autoNextTimer=null;
     state.locked=false;
     dom.feedback.hidden=true;
     dom.expectedBtn.disabled=false;
@@ -650,21 +654,32 @@ img{display:block;max-width:100%;-webkit-user-drag:none}
     dom.progressFill.style.width=(((state.index+1)/TOTAL_ROUNDS)*100)+"%";
 
     dom.nextBtn.textContent=state.index===TOTAL_ROUNDS-1 ? "Ver resultado →" : "Siguiente situación →";
+
+    clearTimeout(autoNextTimer);
+    autoNextTimer=setTimeout(function(){
+      next();
+    },3000);
   }
 
   function next(){
     if(!state.locked) return;
+    clearTimeout(autoNextTimer);
+    autoNextTimer=null;
     state.index++;
     renderScenario();
   }
 
   function startGame(){
+    clearTimeout(autoNextTimer);
+    autoNextTimer=null;
     resetState();
     showScreen(dom.gameScreen);
     renderScenario();
   }
 
   function finishGame(){
+    clearTimeout(autoNextTimer);
+    autoNextTimer=null;
     var accuracy=Math.round((state.correct/TOTAL_ROUNDS)*100);
     dom.finalAccuracy.textContent=accuracy+"%";
     dom.finalScore.textContent=String(state.score);
@@ -674,6 +689,8 @@ img{display:block;max-width:100%;-webkit-user-drag:none}
   }
 
   function goHome(){
+    clearTimeout(autoNextTimer);
+    autoNextTimer=null;
     if(HUB_MODE && window.parent!==window){
       window.parent.postMessage({type:"ORICA_CHOOSE_GAME"},"*");
       return;
