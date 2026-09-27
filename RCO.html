@@ -260,6 +260,62 @@ img{display:block;max-width:100%;-webkit-user-drag:none}
   .answer-btn{min-height:56px}
   .feedback{padding:9px;margin-top:7px}
 }
+
+/* Perfil vertical 9:16: evita scroll general y distribuye imagen/pregunta por altura */
+body.portrait-layout #gameScreen{
+  gap:clamp(4px,.8vh,8px);
+  padding:calc(5px + var(--safe-top)) clamp(5px,1.5vw,12px) calc(5px + var(--safe-bottom));
+}
+body.portrait-layout .topbar{
+  min-height:clamp(46px,6vh,66px);
+  padding:clamp(4px,.7vh,8px) clamp(6px,1.5vw,12px);
+  border-radius:clamp(13px,2vw,18px);
+  backdrop-filter:none;
+}
+body.portrait-layout .rco-top-logo{width:clamp(72px,16vw,128px);height:clamp(24px,4vh,38px)}
+body.portrait-layout .progress-box{min-width:0}
+body.portrait-layout .progress-text{font-size:clamp(8px,1.5vw,11px)}
+body.portrait-layout .hud{gap:clamp(3px,.8vw,7px)}
+body.portrait-layout .hud-item{min-width:clamp(44px,9vw,70px);padding:clamp(5px,.8vh,8px)}
+body.portrait-layout .hud-item b{font-size:clamp(14px,2.7vw,20px)}
+body.portrait-layout .game-shell{
+  min-height:0;padding:clamp(5px,.8vh,9px);gap:clamp(5px,.8vh,9px);
+  grid-template-columns:1fr;grid-template-rows:36% minmax(0,1fr);
+  border-radius:clamp(16px,2.5vw,22px);
+  backdrop-filter:none;
+}
+body.portrait-layout .scene-card{min-height:0;border-radius:clamp(14px,2vw,19px)}
+body.portrait-layout .scene-card img{object-position:center center}
+body.portrait-layout .scene-badge{
+  left:clamp(7px,1.4vw,12px);top:clamp(7px,1.4vw,12px);
+  padding:clamp(5px,.7vh,8px) clamp(8px,1.6vw,12px);
+  font-size:clamp(7px,1.3vw,10px);
+}
+body.portrait-layout .challenge{
+  min-height:0;padding:clamp(9px,1.4vh,16px);
+  border-radius:clamp(14px,2vw,19px);overflow-y:auto;overscroll-behavior:contain;
+}
+body.portrait-layout .challenge-kicker{font-size:clamp(8px,1.5vw,11px);margin-bottom:4px}
+body.portrait-layout .challenge h1{font-size:clamp(19px,4vw,32px)}
+body.portrait-layout .situation{
+  margin:clamp(6px,1vh,11px) 0;padding:clamp(9px,1.3vh,15px);
+  font-size:clamp(12px,2.35vw,17px);line-height:1.28;
+}
+body.portrait-layout .question{margin-bottom:5px;font-size:clamp(10px,1.8vw,13px)}
+body.portrait-layout .answers{gap:clamp(5px,1vw,9px)}
+body.portrait-layout .answer-btn{
+  min-height:clamp(50px,7.6vh,78px);
+  padding:8px 6px;border-radius:clamp(12px,1.8vw,17px);
+  font-size:clamp(12px,2.35vw,18px);
+}
+body.portrait-layout .answer-btn .symbol{font-size:clamp(17px,3vw,25px)}
+body.portrait-layout .feedback{
+  margin-top:clamp(5px,.8vh,9px);padding:clamp(8px,1vh,12px);
+}
+body.portrait-layout .feedback p{font-size:clamp(10.5px,1.9vw,14px);line-height:1.28}
+body.portrait-layout .next-btn{min-height:clamp(36px,5vh,48px);margin-top:6px}
+body.portrait-layout.hub-mode .brand{display:none}
+body.portrait-layout.hub-mode .topbar{grid-template-columns:minmax(0,1fr) auto}
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}
 }
@@ -369,6 +425,17 @@ img{display:block;max-width:100%;-webkit-user-drag:none}
   "use strict";
 
   var HUB_MODE=new URLSearchParams(location.search).get("hub")==="1";
+
+  function applyLayoutProfile(){
+    var portrait=window.innerHeight>window.innerWidth;
+    var ratio=window.innerHeight/Math.max(window.innerWidth,1);
+    document.body.classList.toggle("portrait-layout",portrait && ratio>1.35);
+    document.body.classList.toggle("hub-mode",HUB_MODE);
+  }
+  applyLayoutProfile();
+  window.addEventListener("resize",applyLayoutProfile);
+  window.addEventListener("orientationchange",applyLayoutProfile);
+
   var TOTAL_ROUNDS = 5;
 
   var SCENARIOS = [
