@@ -346,6 +346,7 @@ img{display:block;max-width:100%;-webkit-user-drag:none}
 (function(){
   "use strict";
 
+  var HUB_MODE=new URLSearchParams(location.search).get("hub")==="1";
   var TOTAL_ROUNDS = 5;
 
   var SCENARIOS = [
@@ -673,6 +674,10 @@ img{display:block;max-width:100%;-webkit-user-drag:none}
   }
 
   function goHome(){
+    if(HUB_MODE && window.parent!==window){
+      window.parent.postMessage({type:"ORICA_CHOOSE_GAME"},"*");
+      return;
+    }
     showScreen(dom.startScreen);
   }
 
@@ -682,6 +687,11 @@ img{display:block;max-width:100%;-webkit-user-drag:none}
   dom.expectedBtn.addEventListener("click",function(){answer(true);});
   dom.unexpectedBtn.addEventListener("click",function(){answer(false);});
   dom.nextBtn.addEventListener("click",next);
+
+  if(HUB_MODE){
+    dom.homeBtn.textContent="Elegir juego";
+    startGame();
+  }
 
   document.addEventListener("keydown",function(e){
     if(!dom.gameScreen.classList.contains("active")) return;
