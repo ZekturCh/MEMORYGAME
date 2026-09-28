@@ -208,6 +208,7 @@ body::before{opacity:.08!important}
 .launch-card,.gamebar,.offline-status{backdrop-filter:none!important;box-shadow:none!important}
 .game-option{transition:none!important;touch-action:manipulation}
 .secret-tap{position:fixed;left:0;top:0;width:96px;height:96px;z-index:1000;background:transparent;border:0;opacity:.01}
+.fullscreen-tap{position:fixed;right:0;top:0;width:96px;height:96px;z-index:1000;background:transparent;border:0;opacity:.01;touch-action:none}
 .tuner{position:fixed;inset:auto 14px 14px auto;z-index:1001;width:min(430px,calc(100vw - 28px));max-height:calc(100dvh - 28px);overflow:auto;padding:16px;border-radius:18px;border:1px solid rgba(255,255,255,.26);background:rgba(0,36,72,.96);color:#fff;box-shadow:0 18px 42px rgba(0,0,0,.32)}
 .tuner h2{margin:0 0 10px;font-size:20px}.tuner p{margin:0 0 12px;color:#c9f1ff;font-size:12px;line-height:1.35}.tuner label{display:block;margin:12px 0 6px;font-size:12px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;color:#9ee7ff}.tuner input[type=range]{width:100%}.tuner-row{display:flex;gap:8px;margin-top:14px}.tuner button{flex:1;min-height:42px;border-radius:12px;border:1px solid rgba(255,255,255,.24);background:rgba(255,255,255,.12);color:#fff;font-weight:900}.tuner button.primary{background:#fff;color:#003b70}.tuner-value{float:right;color:#fff}
 
@@ -266,6 +267,7 @@ body::before{opacity:.08!important}
 <div id="offlineStatus" class="offline-status">Preparando offline...</div>
 
 <button id="secretTap" class="secret-tap" type="button" aria-hidden="true" tabindex="-1"></button>
+<button id="fullscreenTap" class="fullscreen-tap" type="button" aria-hidden="true" tabindex="-1"></button>
 <div id="tuner" class="tuner" hidden>
   <h2>Calibracion totem</h2>
   <p>Ajustes guardados en este navegador. Mantener presionada la esquina superior izquierda para abrir/cerrar.</p>
@@ -405,6 +407,52 @@ body::before{opacity:.08!important}
     sendSettings();
   }
   initTuner();
+
+  function initFullscreenTrigger(){
+    var trigger=document.getElementById("fullscreenTap");
+    if(!trigger) return;
+    var pressedAt=0;
+
+    function isFullscreen(){
+      return !!(document.fullscreenElement || document.webkitFullscreenElement);
+    }
+    function enterFullscreen(){
+      var root=document.documentElement;
+      var request=root.requestFullscreen || root.webkitRequestFullscreen;
+      if(request) {
+        try{
+          var result=request.call(root);
+          if(result && typeof result.catch==="function") result.catch(function(){});
+        }catch(e){}
+      }
+    }
+    function exitFullscreen(){
+      var exit=document.exitFullscreen || document.webkitExitFullscreen;
+      if(exit) {
+        try{
+          var result=exit.call(document);
+          if(result && typeof result.catch==="function") result.catch(function(){});
+        }catch(e){}
+      }
+    }
+    function toggleFullscreen(){
+      if(isFullscreen()) exitFullscreen();
+      else enterFullscreen();
+    }
+
+    trigger.addEventListener("pointerdown",function(e){
+      pressedAt=Date.now();
+      try{trigger.setPointerCapture(e.pointerId);}catch(err){}
+    });
+    trigger.addEventListener("pointerup",function(){
+      var held=Date.now()-pressedAt;
+      pressedAt=0;
+      if(held>=1200) toggleFullscreen();
+    });
+    trigger.addEventListener("pointercancel",function(){pressedAt=0;});
+  }
+  initFullscreenTrigger();
+
   frame.addEventListener("load",function(){setTimeout(sendSettings,150);});
 
 })();
