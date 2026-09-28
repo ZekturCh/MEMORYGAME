@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#003f76">
+<title>ORICA · Reto de valores Touch</title>
+<style>
+:root{
+  --navy:#003b70;
+  --navy-2:#062e5c;
+  --blue:#009fe3;
+  --blue-2:#2dc1f0;
+  --ice:#eaf8ff;
+  --white:#fff;
+  --green:#35d07f;
+  --green-2:#13a761;
+  --red:#ff6474;
+  --red-2:#dc3f56;
+  --amber:#ffd76b;
+  --panel:rgba(255,255,255,.12);
+  --line:rgba(255,255,255,.22);
+  --shadow:0 24px 70px rgba(0,26,58,.34);
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-right:env(safe-area-inset-right,0px);
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+  --safe-left:env(safe-area-inset-left,0px);
+}
+*{box-sizing:border-box}
+html,body{width:100%;height:100%;margin:0;overflow:hidden;overscroll-behavior:none}
+body{
+  font-family:Inter,Segoe UI,Arial,sans-serif;
+  color:#fff;
+  background:
+    radial-gradient(circle at 18% 12%,rgba(77,203,248,.44),transparent 27%),
+    radial-gradient(circle at 84% 84%,rgba(28,169,225,.28),transparent 31%),
+    linear-gradient(145deg,#00538f 0%,#003b70 48%,#01284f 100%);
+  -webkit-tap-highlight-color:transparent;
+  user-select:none;
+}
+body::before{
+  content:"";position:fixed;inset:-25%;pointer-events:none;opacity:.20;
+  background:repeating-radial-gradient(circle at 50% 52%,transparent 0 42px,rgba(123,220,255,.46) 43px 47px,transparent 48px 86px);
+}
+button{font:inherit}
+img{display:block;max-width:100%;-webkit-user-drag:none}
+[hidden]{display:none!important}
+#app{position:relative;width:100%;height:100%;padding:var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left)}
+.screen{position:absolute;inset:0;display:none;min-width:0;min-height:0}
+.screen.active{display:flex}
+
+#startScreen{
+  align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:28px;
+}
+.start-card{
+  width:min(760px,94vw);padding:clamp(28px,5vw,56px);border:1px solid rgba(255,255,255,.25);
+  border-radius:34px;background:linear-gradient(150deg,rgba(255,255,255,.16),rgba(255,255,255,.07));
+  box-shadow:var(--shadow);backdrop-filter:blur(12px);
+}
+.orica-mark{
+  display:flex;align-items:center;justify-content:center;margin-bottom:18px;
+}
+.rco-start-logo{
+  width:min(320px,58vw);max-height:112px;height:auto;object-fit:contain;
+  filter:drop-shadow(0 10px 24px rgba(0,25,55,.22));
+}
+.eyebrow{margin:0 0 8px;color:#91e5ff;font-weight:900;letter-spacing:.18em;text-transform:uppercase;font-size:12px}
+.start-title{margin:0;font-size:clamp(34px,6vw,68px);line-height:.98;letter-spacing:-.035em}
+.start-copy{
+  width:min(620px,100%);margin:18px auto 26px;color:#d7f4ff;font-size:clamp(15px,2vw,20px);line-height:1.5
+}
+.start-values{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin:0 auto 28px}
+.value-pill{
+  padding:8px 12px;border:1px solid rgba(255,255,255,.18);border-radius:999px;
+  background:rgba(0,38,76,.34);color:#e9faff;font-weight:850;font-size:11px;letter-spacing:.07em;text-transform:uppercase
+}
+.primary-btn{
+  min-width:min(340px,88vw);min-height:72px;border:2px solid rgba(255,255,255,.94);border-radius:999px;
+  background:linear-gradient(180deg,#fff,#dff6ff);color:var(--navy);font-size:clamp(24px,4vw,38px);
+  font-weight:1000;letter-spacing:.04em;cursor:pointer;box-shadow:0 0 0 7px rgba(0,159,227,.35),0 18px 35px rgba(0,27,58,.35);
+  transition:transform .12s ease,filter .12s ease;
+}
+.primary-btn:hover{filter:brightness(1.05)} .primary-btn:active{transform:scale(.97)}
+
+#gameScreen{flex-direction:column;gap:10px;padding:calc(10px + var(--safe-top)) calc(12px + var(--safe-right)) calc(10px + var(--safe-bottom)) calc(12px + var(--safe-left))}
+.topbar{
+  flex:0 0 auto;display:grid;grid-template-columns:minmax(130px,1fr) auto minmax(130px,1fr);gap:12px;align-items:center;
+  min-height:62px;padding:8px 12px;border:1px solid var(--line);border-radius:20px;background:rgba(0,44,86,.60);
+  box-shadow:0 12px 30px rgba(0,26,58,.22);backdrop-filter:blur(12px);
+}
+.brand{display:flex;align-items:center;min-width:0}
+.rco-top-logo{width:112px;max-width:20vw;height:34px;object-fit:contain;object-position:left center}
+.progress-box{text-align:center;min-width:145px}
+.progress-line{height:5px;background:rgba(255,255,255,.15);border-radius:999px;overflow:hidden;margin-bottom:4px}
+.progress-fill{height:100%;width:0;background:linear-gradient(90deg,#77e4ff,#fff);border-radius:inherit;transition:width .35s ease}
+.progress-text{font-size:10px;color:#c7efff;font-weight:900;letter-spacing:.12em;text-transform:uppercase}
+.hud{justify-self:end;display:flex;gap:8px}
+.hud-item{min-width:74px;text-align:center;padding:6px 9px;border-radius:13px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12)}
+.hud-item b{display:block;font-size:18px;line-height:1}
+.hud-item span{display:block;margin-top:3px;color:#bfeeff;font-size:8px;font-weight:900;letter-spacing:.11em;text-transform:uppercase}
+
+.game-shell{
+  flex:1 1 auto;min-height:0;display:grid;grid-template-columns:minmax(0,1.18fr) minmax(320px,.82fr);gap:12px;
+  padding:12px;border:1px solid rgba(255,255,255,.18);border-radius:28px;background:linear-gradient(145deg,rgba(255,255,255,.13),rgba(255,255,255,.055));
+  box-shadow:inset 0 0 60px rgba(0,22,49,.18),0 18px 40px rgba(0,20,45,.16);backdrop-filter:blur(8px)
+}
+.scene-card{
+  position:relative;min-width:0;min-height:0;overflow:hidden;border-radius:22px;border:1px solid rgba(255,255,255,.22);
+  background:#082f59;box-shadow:0 16px 34px rgba(0,23,49,.25)
+}
+.scene-card img{width:100%;height:100%;object-fit:contain;background:#082f59}
+.scene-placeholder{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;
+  text-align:center;padding:24px;background:
+    linear-gradient(135deg,rgba(0,159,227,.18),rgba(0,45,86,.16)),
+    repeating-linear-gradient(125deg,rgba(255,255,255,.035) 0 2px,transparent 2px 18px);
+  color:#ccefff
+}
+.scene-placeholder .factory-icon{font-size:clamp(56px,9vw,100px);filter:drop-shadow(0 10px 18px rgba(0,15,35,.24))}
+.scene-placeholder strong{font-size:clamp(15px,2vw,21px);letter-spacing:.13em;text-transform:uppercase}
+.scene-placeholder span{font-size:12px;color:#90dfff}
+.scene-badge{
+  position:absolute;left:14px;top:14px;z-index:3;padding:8px 12px;border-radius:999px;
+  background:rgba(0,39,78,.78);border:1px solid rgba(255,255,255,.22);backdrop-filter:blur(10px);
+  font-size:10px;font-weight:950;letter-spacing:.11em;text-transform:uppercase
+}
+.scene-vignette{position:absolute;inset:auto 0 0;height:36%;background:linear-gradient(transparent,rgba(0,24,50,.62));pointer-events:none}
+
+.challenge{
+  min-width:0;min-height:0;display:flex;flex-direction:column;padding:clamp(14px,2vw,22px);
+  border-radius:22px;background:linear-gradient(160deg,rgba(1,54,104,.76),rgba(0,36,72,.62));
+  border:1px solid rgba(255,255,255,.16)
+}
+.challenge-top{flex:0 0 auto}
+.challenge-kicker{margin:0 0 7px;color:#83dcff;font-size:11px;font-weight:950;letter-spacing:.16em;text-transform:uppercase}
+.challenge h1{margin:0;font-size:clamp(22px,3vw,38px);line-height:1.05;letter-spacing:-.025em}
+.situation{
+  flex:1 1 auto;display:flex;align-items:center;margin:14px 0;padding:clamp(15px,2vw,22px);
+  border-radius:18px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.075);
+  color:#f4fcff;font-size:clamp(15px,1.75vw,21px);font-weight:720;line-height:1.42
+}
+.question{margin:0 0 10px;color:#c7efff;font-weight:850;font-size:13px}
+.answers{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.answer-btn{
+  min-height:76px;border:1px solid rgba(255,255,255,.20);border-radius:18px;color:#fff;cursor:pointer;
+  font-weight:950;font-size:clamp(14px,1.5vw,18px);line-height:1.1;transition:transform .13s ease,filter .13s ease,box-shadow .2s ease
+}
+.answer-btn .symbol{display:block;font-size:26px;margin-bottom:3px}
+.answer-btn.expected{background:linear-gradient(155deg,rgba(39,189,112,.95),rgba(11,126,72,.92))}
+.answer-btn.unexpected{background:linear-gradient(155deg,rgba(240,83,103,.96),rgba(166,41,64,.94))}
+.answer-btn:hover{filter:brightness(1.07);transform:translateY(-1px)}
+.answer-btn:active{transform:scale(.98)}
+.answer-btn:disabled{cursor:default;opacity:.72}
+.answer-btn.correct-choice{box-shadow:0 0 0 3px rgba(255,255,255,.92),0 0 28px rgba(81,235,160,.55);opacity:1}
+.answer-btn.wrong-choice{box-shadow:0 0 0 3px rgba(255,255,255,.82),0 0 25px rgba(255,96,113,.48);opacity:1}
+
+.feedback{
+  flex:0 0 auto;margin-top:10px;padding:14px 15px;border-radius:18px;border:1px solid rgba(255,255,255,.17);
+  background:rgba(255,255,255,.09);animation:feedbackIn .34s cubic-bezier(.2,.8,.2,1) both
+}
+@keyframes feedbackIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.feedback-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+.result-chip{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:1000;letter-spacing:.12em;text-transform:uppercase}
+.result-chip.good{color:#88ffc0}.result-chip.bad{color:#ff9eaa}
+.value-reveal{
+  padding:6px 10px;border-radius:999px;background:linear-gradient(90deg,#fff,#ccefff);color:var(--navy);
+  font-size:11px;font-weight:1000;letter-spacing:.11em;text-transform:uppercase
+}
+.feedback p{margin:0;color:#e7f9ff;font-size:13px;line-height:1.42}
+.next-btn{
+  width:100%;min-height:48px;margin-top:11px;border:1px solid rgba(255,255,255,.36);border-radius:14px;
+  background:rgba(255,255,255,.13);color:#fff;font-weight:900;cursor:pointer
+}
+.next-btn:hover{background:rgba(255,255,255,.18)}
+
+#endScreen{align-items:center;justify-content:center;padding:26px}
+.end-card{
+  width:min(700px,94vw);padding:clamp(25px,5vw,48px);text-align:center;border-radius:30px;
+  background:linear-gradient(155deg,rgba(4,79,133,.98),rgba(1,42,80,.99));border:1px solid rgba(255,255,255,.25);box-shadow:var(--shadow)
+}
+.end-card h2{margin:4px 0 8px;font-size:clamp(30px,5vw,52px)}
+.end-card>p{margin:0;color:#d5f3ff}
+.rco-end-logo{
+  width:min(240px,60vw);max-height:84px;height:auto;object-fit:contain;margin:0 auto 14px;
+}
+.score-ring{
+  width:156px;height:156px;margin:24px auto 18px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-direction:column;
+  border:10px solid rgba(255,255,255,.15);box-shadow:inset 0 0 0 3px rgba(102,220,255,.33),0 0 32px rgba(55,194,244,.18)
+}
+.score-ring b{font-size:42px;line-height:1}.score-ring span{margin-top:3px;color:#9de7ff;font-size:10px;font-weight:900;letter-spacing:.14em;text-transform:uppercase}
+.end-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 auto 22px}
+.end-stat{padding:12px;border-radius:15px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12)}
+.end-stat b{display:block;font-size:24px}.end-stat span{display:block;margin-top:3px;color:#bfeeff;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.1em}
+.end-actions{display:flex;justify-content:center;gap:10px;flex-wrap:wrap}
+.small-btn{
+  min-height:50px;padding:11px 20px;border-radius:999px;border:1px solid rgba(255,255,255,.28);
+  background:rgba(255,255,255,.11);color:#fff;font-weight:900;cursor:pointer
+}
+.small-btn.primary{background:linear-gradient(180deg,#fff,#dff6ff);color:var(--navy);border-color:#fff}
+
+@media(max-width:900px){
+  .topbar{grid-template-columns:110px 1fr auto}
+  .brand{font-size:17px}.brand .dot{width:26px;height:26px}
+  .hud-item{min-width:60px;padding:6px}.hud-item b{font-size:16px}
+  .game-shell{grid-template-columns:1fr;grid-template-rows:minmax(240px,44%) minmax(0,1fr)}
+  .challenge{padding:12px}
+  .situation{margin:9px 0;padding:13px;font-size:14px}
+  .answer-btn{min-height:62px}
+}
+@media(max-width:620px){
+  #gameScreen{gap:4px;padding:calc(4px + var(--safe-top)) calc(5px + var(--safe-right)) calc(4px + var(--safe-bottom)) calc(5px + var(--safe-left))}
+  .topbar{min-height:46px;padding:4px 6px;border-radius:13px;grid-template-columns:68px minmax(0,1fr) auto}
+  .rco-top-logo{width:68px;max-width:22vw;height:24px}
+  .progress-box{min-width:0}
+  .progress-text{font-size:8px;letter-spacing:.08em}
+  .hud{gap:3px}
+  .hud-item{min-width:42px;padding:5px;border-radius:9px}
+  .hud-item b{font-size:14px}
+  .hud-item span{display:none}
+  .game-shell{padding:5px;gap:5px;border-radius:16px;grid-template-rows:minmax(155px,32%) minmax(0,1fr)}
+  .scene-card,.challenge{border-radius:13px}
+  .scene-badge{left:7px;top:7px;padding:5px 8px;font-size:7px}
+  .challenge{padding:9px;overflow-y:auto;overscroll-behavior:contain}
+  .challenge h1{font-size:18px}
+  .challenge-kicker{font-size:8px;margin-bottom:4px}
+  .situation{margin:6px 0;padding:9px 10px;font-size:12.5px;line-height:1.25}
+  .question{font-size:10px;margin-bottom:5px}
+  .answers{gap:5px}
+  .answer-btn{min-height:48px;border-radius:12px;font-size:11.5px;padding:7px 5px}
+  .answer-btn .symbol{display:inline;margin:0 4px 0 0;font-size:16px}
+  .feedback{padding:8px;margin-top:5px;border-radius:12px}
+  .feedback-head{margin-bottom:4px}
+  .result-chip,.value-reveal{font-size:9px}
+  .feedback p{font-size:10.5px;line-height:1.28}
+  .next-btn{min-height:36px;margin-top:6px;font-size:11px}
+}
+@media(max-width:420px) and (max-height:600px){
+  #gameScreen{gap:3px;padding-top:3px;padding-bottom:3px}
+  .topbar{min-height:42px;padding:3px 5px}
+  .rco-top-logo{width:62px;height:21px}
+  .hud-item{min-width:39px;padding:4px}
+  .hud-item b{font-size:13px}
+  .game-shell{padding:4px;gap:4px;grid-template-rows:minmax(132px,29%) minmax(0,1fr)}
+  .scene-badge{padding:4px 7px}
+  .challenge{padding:7px}
+  .challenge h1{font-size:17px}
+  .situation{margin:5px 0;padding:8px;font-size:11.5px;line-height:1.22}
+  .question{font-size:9.5px;margin-bottom:4px}
+  .answer-btn{min-height:44px;font-size:10.5px}
+  .feedback{padding:7px;margin-top:4px}
+  .feedback p{font-size:10px}
+  .next-btn{min-height:34px;margin-top:5px}
+}
+@media(max-height:650px) and (min-width:800px){
+  #gameScreen{gap:6px;padding-top:6px;padding-bottom:6px}
+  .topbar{min-height:50px;padding:5px 9px}
+  .game-shell{padding:7px;gap:7px}
+  .challenge{padding:10px}
+  .situation{margin:7px 0;padding:11px;font-size:14px}
+  .answer-btn{min-height:56px}
+  .feedback{padding:9px;margin-top:7px}
+}
+
+/* Perfil vertical 9:16: evita scroll general y distribuye imagen/pregunta por altura */
+body.portrait-layout #gameScreen{
+  gap:clamp(4px,.8vh,8px);
+  padding:calc(5px + var(--safe-top)) clamp(5px,1.5vw,12px) calc(5px + var(--safe-bottom));
+}
+body.portrait-layout .topbar{
+  min-height:clamp(46px,6vh,66px);
+  padding:clamp(4px,.7vh,8px) clamp(6px,1.5vw,12px);
+  border-radius:clamp(13px,2vw,18px);
+  backdrop-filter:none;
+}
+body.portrait-layout .rco-top-logo{width:clamp(72px,16vw,128px);height:clamp(24px,4vh,38px)}
+body.portrait-layout .progress-box{min-width:0}
+body.portrait-layout .progress-text{font-size:clamp(11px,1.9vw,14px)}
+body.portrait-layout .hud{gap:clamp(4px,.9vw,8px)}
+body.portrait-layout .hud-item{min-width:clamp(48px,9.5vw,76px);padding:clamp(6px,.9vh,9px)}
+body.portrait-layout .hud-item b{font-size:clamp(18px,3vw,23px)}
+body.portrait-layout .game-shell{
+  min-height:0;padding:clamp(5px,.8vh,9px);gap:clamp(5px,.8vh,9px);
+  grid-template-columns:1fr;grid-template-rows:34% minmax(0,1fr);
+  border-radius:clamp(16px,2.5vw,22px);
+  backdrop-filter:none;
+}
+body.portrait-layout .scene-card{min-height:0;border-radius:clamp(14px,2vw,19px)}
+body.portrait-layout .scene-card img{object-position:center center}
+body.portrait-layout .scene-badge{
+  left:clamp(8px,1.5vw,13px);top:clamp(8px,1.5vw,13px);
+  padding:clamp(6px,.8vh,9px) clamp(10px,1.8vw,14px);
+  font-size:clamp(10px,1.7vw,12px);
+}
+body.portrait-layout .challenge{
+  min-height:0;padding:clamp(14px,1.8vh,22px);
+  border-radius:clamp(14px,2vw,19px);overflow-y:auto;overscroll-behavior:contain;
+  justify-content:flex-start;
+}
+body.portrait-layout .challenge-kicker{font-size:clamp(11px,1.9vw,14px);margin-bottom:5px}
+body.portrait-layout .challenge h1{font-size:clamp(26px,4.8vw,38px)}
+body.portrait-layout .situation{
+  flex:0 0 auto;min-height:clamp(110px,12vh,190px);
+  margin:clamp(10px,1.3vh,16px) 0;padding:clamp(16px,1.8vh,24px);
+  font-size:clamp(18px,3.2vw,25px);line-height:1.38;
+}
+body.portrait-layout .question{margin-bottom:7px;font-size:clamp(14px,2.4vw,17px)}
+body.portrait-layout .answers{gap:clamp(5px,1vw,9px)}
+body.portrait-layout .answer-btn{
+  min-height:clamp(58px,8.2vh,86px);
+  padding:10px 8px;border-radius:clamp(13px,1.9vw,18px);
+  font-size:clamp(16px,2.9vw,22px);
+}
+body.portrait-layout .answer-btn .symbol{font-size:clamp(22px,3.5vw,30px)}
+body.portrait-layout .feedback{
+  margin-top:clamp(6px,.9vh,10px);padding:clamp(10px,1.2vh,14px);
+}
+body.portrait-layout .result-chip,
+body.portrait-layout .value-reveal{font-size:clamp(11px,1.9vw,14px)}
+body.portrait-layout .feedback p{font-size:clamp(14px,2.4vw,18px);line-height:1.34}
+body.portrait-layout .next-btn{
+  min-height:clamp(42px,5.5vh,52px);margin-top:7px;font-size:clamp(13px,2.2vw,16px)
+}
+body.portrait-layout.hub-mode .brand{display:none}
+body.portrait-layout.hub-mode .topbar{grid-template-columns:minmax(0,1fr) auto}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}
+}
+
+/* Ajustes de contingencia offline para pantalla vertical/touch */
+body.portrait-layout .challenge h1{font-size:clamp(30px,5.8vw,48px)}
+body.portrait-layout .situation{font-size:clamp(22px,3.8vw,32px);line-height:1.42}
+body.portrait-layout .answer-btn{font-size:clamp(20px,3.2vw,27px)}
+body.portrait-layout .question{font-size:clamp(15px,2.4vw,19px)}
+body.portrait-layout .feedback p{font-size:clamp(16px,2.5vw,21px)}
+
+
+/* Modo touch liviano: menos efectos para televisores Android lentos */
+body::before{opacity:.08}
+.start-card,.topbar,.game-shell,.challenge,.scene-card,.end-card{backdrop-filter:none!important;box-shadow:none!important}
+.answer-btn,.primary-btn,.small-btn,.next-btn,.feedback{transition:none!important;animation:none!important}
+.answer-btn:hover,.primary-btn:hover{filter:none!important;transform:none!important}
+
+</style>
+</head>
+<body>
+<div id="app">
+  <section id="startScreen" class="screen active" aria-label="Inicio">
+    <div class="start-card">
+      <div class="orica-mark"><img class="rco-start-logo" src="ORICALOGO.png" alt="ORICA"></div>
+      <p class="eyebrow">Reto rápido</p>
+      <h1 class="start-title">Pon a prueba<br>tus valores</h1>
+      <p class="start-copy">Analiza cada situación y decide si representa una conducta esperada o no esperada. Cada respuesta revela el valor ORICA que está en juego.</p>
+      <div class="start-values" aria-label="Valores ORICA">
+        <span class="value-pill">Integridad</span>
+        <span class="value-pill">Respeto</span>
+        <span class="value-pill">Juntos</span>
+        <span class="value-pill">Seguridad</span>
+        <span class="value-pill">Excelencia</span>
+      </div>
+      <button id="startBtn" class="primary-btn" type="button">EMPEZAR</button>
+    </div>
+  </section>
+
+  <section id="gameScreen" class="screen" aria-label="Juego Pon a prueba tus valores">
+    <header class="topbar">
+      <div class="brand"><img class="rco-top-logo" src="ORICALOGO.png" alt="ORICA"></div>
+      <div class="progress-box">
+        <div class="progress-line"><div id="progressFill" class="progress-fill"></div></div>
+        <div id="progressText" class="progress-text">Situación 1 de 5</div>
+      </div>
+      <div class="hud">
+        <div class="hud-item"><b id="score">0</b><span>Puntos</span></div>
+        <div class="hud-item"><b id="streak">0</b><span>Racha</span></div>
+      </div>
+    </header>
+
+    <main class="game-shell">
+      <section class="scene-card" aria-label="Imagen de la situación">
+        <div class="scene-badge">Situación ORICA</div>
+        <img id="sceneImage" alt="" hidden>
+        <div id="scenePlaceholder" class="scene-placeholder">
+          <div class="factory-icon" aria-hidden="true">🏭</div>
+          <strong>Escena situacional</strong>
+          <span>La imagen se conectará en el siguiente paso</span>
+        </div>
+        <div class="scene-vignette"></div>
+      </section>
+
+      <section class="challenge">
+        <div class="challenge-top">
+          <p class="challenge-kicker">Observa · Analiza · Decide</p>
+          <h1>¿Tú qué harías?</h1>
+        </div>
+
+        <div id="situationText" class="situation"></div>
+
+        <div id="answerArea">
+          <p class="question">Selecciona una respuesta:</p>
+          <div class="answers">
+            <button id="expectedBtn" class="answer-btn expected" type="button">
+              <span class="symbol">✓</span>Lo aprobamos
+            </button>
+            <button id="unexpectedBtn" class="answer-btn unexpected" type="button">
+              <span class="symbol">✕</span>NO lo aprobamos
+            </button>
+          </div>
+        </div>
+
+        <div id="feedback" class="feedback" hidden aria-live="polite" aria-atomic="true">
+          <div class="feedback-head">
+            <span id="resultChip" class="result-chip"></span>
+            <span id="valueReveal" class="value-reveal"></span>
+          </div>
+          <p id="feedbackText"></p>
+          <button id="nextBtn" class="next-btn" type="button">Siguiente situación →</button>
+        </div>
+      </section>
+    </main>
+  </section>
+
+  <section id="endScreen" class="screen" aria-label="Resultados">
+    <div class="end-card">
+      <img class="rco-end-logo" src="ORICALOGO.png" alt="ORICA">
+      <p class="eyebrow">Reto completado</p>
+      <h2>Pusiste a prueba tus valores</h2>
+      <p>Tu resultado en esta ronda:</p>
+      <div class="score-ring">
+        <b id="finalAccuracy">0%</b>
+        <span>Aciertos</span>
+      </div>
+      <div class="end-stats">
+        <div class="end-stat"><b id="finalScore">0</b><span>Puntos</span></div>
+        <div class="end-stat"><b id="finalCorrect">0/5</b><span>Correctas</span></div>
+        <div class="end-stat"><b id="finalStreak">0</b><span>Mejor racha</span></div>
+      </div>
+      <div class="end-actions">
+        <button id="againBtn" class="small-btn primary" type="button">Jugar de nuevo</button>
+        <button id="homeBtn" class="small-btn" type="button">Inicio</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var HUB_MODE=new URLSearchParams(location.search).get("hub")==="1";
+
+  function applyLayoutProfile(){
+    var portrait=window.innerHeight>window.innerWidth;
+    var ratio=window.innerHeight/Math.max(window.innerWidth,1);
+    document.body.classList.toggle("portrait-layout",portrait && ratio>1.35);
+    document.body.classList.toggle("hub-mode",HUB_MODE);
+  }
+  applyLayoutProfile();
+  window.addEventListener("resize",applyLayoutProfile);
+  window.addEventListener("orientationchange",applyLayoutProfile);
+
+  var TOTAL_ROUNDS = 5;
+
+  var SCENARIOS = [
+    {
+      id:"integridad-devuelve-epp", value:"INTEGRIDAD", expected:true,
+      text:"Encuentras un objeto, herramienta o EPP que un compañero olvidó en el área de trabajo y se lo devuelves.",
+      feedback:"Cuidar lo ajeno también es cuidar la confianza del equipo.",
+      image:"assets/rco/intercambio_de_epp_en_fabrica_orica.png"
+    },
+    {
+      id:"integridad-robo", value:"INTEGRIDAD", expected:false,
+      text:"Una persona toma un casco, bicicleta, laptop o celular que pertenece a otra persona y se lo lleva.",
+      feedback:"Tomar algo que no nos pertenece va contra la integridad y la confianza.",
+      image:null
+    },
+    {
+      id:"integridad-levanta-mano", value:"INTEGRIDAD", expected:true,
+      text:"Un operador detecta un problema y levanta la mano para hablarlo de inmediato con su jefe.",
+      feedback:"Reportar a tiempo y hablar con transparencia protege a todos.",
+      image:null
+    },
+    {
+      id:"integridad-oculta-error", value:"INTEGRIDAD", expected:false,
+      text:"Un operador nota un desperfecto o error operativo y decide ocultarlo para evitar una llamada de atención.",
+      feedback:"Ocultar un error impide corregirlo y puede generar un problema mayor.",
+      image:"assets/rco/operario_oculta_piezas_defectuosas_en_fabrica.png"
+    },
+
+    {
+      id:"respeto-puntual", value:"RESPETO", expected:true,
+      text:"Un trabajador llega puntual al cambio de turno, saluda al equipo y recibe la información del turno anterior.",
+      feedback:"La puntualidad y el buen trato facilitan un cambio de turno ordenado.",
+      image:"assets/rco/saludo_de_equipo_en_fabrica_orica.png"
+    },
+    {
+      id:"respeto-tarde", value:"RESPETO", expected:false,
+      text:"El turno comienza y un trabajador llega tarde a planta sin haber avisado previamente.",
+      feedback:"Llegar tarde afecta al compañero que espera el relevo y al funcionamiento del equipo.",
+      image:null
+    },
+    {
+      id:"respeto-vestidor-limpio", value:"RESPETO", expected:true,
+      text:"Después de cambiarse, una persona deja su casillero y el vestidor limpios y ordenados para los demás.",
+      feedback:"Los espacios compartidos se cuidan pensando también en quien viene después.",
+      image:null
+    },
+    {
+      id:"respeto-vestidor-desorden", value:"RESPETO", expected:false,
+      text:"Una persona deja ropa, toallas y objetos tirados en los vestidores y se retira sin ordenar.",
+      feedback:"Dejar desorden en espacios compartidos afecta a todo el equipo.",
+      image:"assets/rco/desorden_en_vestuarios_de_orica.png"
+    },
+    {
+      id:"respeto-hostigamiento", value:"RESPETO", expected:false,
+      text:"Durante el turno, una persona interrumpe, se burla o hostiga repetidamente a un compañero.",
+      feedback:"El hostigamiento nunca es una broma. El respeto se demuestra en cada interacción.",
+      image:null
+    },
+
+    {
+      id:"juntos-ayuda", value:"JUNTOS", expected:true,
+      text:"Un compañero ve que alguien necesita apoyo con su carga y se acerca para ayudarlo.",
+      feedback:"Trabajar juntos significa apoyar cuando el equipo lo necesita.",
+      image:"assets/rco/colaboracion_en_la_planta_orica.png"
+    },
+    {
+      id:"juntos-ignora", value:"JUNTOS", expected:false,
+      text:"Una persona ve a un compañero que necesita ayuda urgente y decide cruzarse de brazos e ignorarlo.",
+      feedback:"El trabajo en equipo requiere involucrarse y no dejar solo a quien necesita apoyo.",
+      image:null
+    },
+    {
+      id:"juntos-a3", value:"JUNTOS", expected:true,
+      text:"El equipo participa activamente en un proyecto A3, comparte ideas y construye una solución en conjunto.",
+      feedback:"Las mejores soluciones aparecen cuando compartimos ideas y experiencia.",
+      image:null
+    },
+    {
+      id:"juntos-aislado", value:"JUNTOS", expected:false,
+      text:"Un trabajador se niega a compartir información o buenas prácticas y prefiere trabajar de forma aislada.",
+      feedback:"Guardar conocimiento debilita al equipo; compartirlo nos hace mejores.",
+      image:null
+    },
+    {
+      id:"juntos-celebra", value:"JUNTOS", expected:true,
+      text:"El equipo reconoce y celebra el buen resultado conseguido por otro compañero.",
+      feedback:"Reconocer los logros fortalece la confianza y el sentido de equipo.",
+      image:null
+    },
+
+    {
+      id:"seguridad-take5", value:"SEGURIDAD", expected:true,
+      text:"Antes de iniciar una tarea, el trabajador completa correctamente el Take 5 y revisa los riesgos del área.",
+      feedback:"Detenerse a evaluar los riesgos antes de empezar es parte del trabajo seguro.",
+      image:"assets/rco/checklist_de_seguridad_en_fabrica_orica.png"
+    },
+    {
+      id:"seguridad-omite-take5", value:"SEGURIDAD", expected:false,
+      text:"Una persona firma el Take 5 solo por cumplir, sin observar realmente el área ni evaluar los riesgos.",
+      feedback:"El Take 5 no es un trámite: sirve para identificar peligros antes de actuar.",
+      image:null
+    },
+    {
+      id:"seguridad-charla", value:"SEGURIDAD", expected:true,
+      text:"Antes de comenzar el trabajo, el equipo participa y presta atención durante la charla de 5 minutos.",
+      feedback:"Las charlas ayudan a alinear al equipo y anticipar riesgos.",
+      image:null
+    },
+    {
+      id:"seguridad-epp", value:"SEGURIDAD", expected:true,
+      text:"Un trabajador ingresa al área usando correctamente todos los EPP obligatorios para su tarea.",
+      feedback:"Los EPP funcionan cuando se usan de forma completa y correcta.",
+      image:null
+    },
+    {
+      id:"seguridad-celular", value:"SEGURIDAD", expected:false,
+      text:"Un trabajador usa el celular dentro de un área de planta donde está prohibido y permanece cerca de maquinaria en operación.",
+      feedback:"Las distracciones y el incumplimiento de EPP pueden exponer al trabajador y a los demás.",
+      image:"assets/rco/trabajador_distraido_junto_a_maquinaria_industrial.png"
+    },
+
+    {
+      id:"excelencia-kaizen", value:"EXCELENCIA", expected:true,
+      text:"Una trabajadora detecta una oportunidad de mejora, la registra como Simple Kaizen y la comparte con el equipo.",
+      feedback:"La excelencia también consiste en buscar continuamente una mejor forma de hacer las cosas.",
+      image:"assets/rco/equipo_y_mejora_continua_en_fabrica_orica.png"
+    },
+    {
+      id:"excelencia-atajo", value:"EXCELENCIA", expected:false,
+      text:"Para terminar más rápido, una persona improvisa un atajo que se salta el proceso y puede afectar la calidad del producto.",
+      feedback:"La rapidez no reemplaza al proceso. La calidad se protege haciendo bien el trabajo.",
+      image:null
+    },
+    {
+      id:"excelencia-training", value:"EXCELENCIA", expected:true,
+      text:"Un trabajador completa a tiempo las capacitaciones y entrenamientos programados para su función.",
+      feedback:"Aprender y mantenerse actualizado es parte de hacer un trabajo excelente.",
+      image:null
+    }
+  ];
+
+  var VALUES = ["INTEGRIDAD","RESPETO","JUNTOS","SEGURIDAD","EXCELENCIA"];
+
+  var state = {
+    deck:[],
+    index:0,
+    score:0,
+    correct:0,
+    streak:0,
+    bestStreak:0,
+    locked:false
+  };
+
+  var autoNextTimer=null;
+
+  function $(id){ return document.getElementById(id); }
+
+  var dom = {
+    startScreen:$("startScreen"),
+    gameScreen:$("gameScreen"),
+    endScreen:$("endScreen"),
+    startBtn:$("startBtn"),
+    againBtn:$("againBtn"),
+    homeBtn:$("homeBtn"),
+    progressFill:$("progressFill"),
+    progressText:$("progressText"),
+    score:$("score"),
+    streak:$("streak"),
+    sceneImage:$("sceneImage"),
+    scenePlaceholder:$("scenePlaceholder"),
+    situationText:$("situationText"),
+    expectedBtn:$("expectedBtn"),
+    unexpectedBtn:$("unexpectedBtn"),
+    feedback:$("feedback"),
+    resultChip:$("resultChip"),
+    valueReveal:$("valueReveal"),
+    feedbackText:$("feedbackText"),
+    nextBtn:$("nextBtn"),
+    finalAccuracy:$("finalAccuracy"),
+    finalScore:$("finalScore"),
+    finalCorrect:$("finalCorrect"),
+    finalStreak:$("finalStreak")
+  };
+
+  function shuffle(input){
+    var a=input.slice();
+    for(var i=a.length-1;i>0;i--){
+      var j=Math.floor(Math.random()*(i+1));
+      var t=a[i]; a[i]=a[j]; a[j]=t;
+    }
+    return a;
+  }
+
+  function pickOne(list){
+    return list[Math.floor(Math.random()*list.length)];
+  }
+
+  function buildDeck(){
+    var illustrated=SCENARIOS.filter(function(s){return Boolean(s.image);});
+    return shuffle(illustrated).slice(0,TOTAL_ROUNDS);
+  }
+
+  function showScreen(screen){
+    [dom.startScreen,dom.gameScreen,dom.endScreen].forEach(function(s){s.classList.remove("active");});
+    screen.classList.add("active");
+  }
+
+  function resetState(){
+    state.deck=buildDeck();
+    state.index=0;
+    state.score=0;
+    state.correct=0;
+    state.streak=0;
+    state.bestStreak=0;
+    state.locked=false;
+  }
+
+  function updateHud(){
+    var shown=Math.min(state.index+1,TOTAL_ROUNDS);
+    dom.progressText.textContent="Situación "+shown+" de "+TOTAL_ROUNDS;
+    dom.progressFill.style.width=((state.index/TOTAL_ROUNDS)*100)+"%";
+    dom.score.textContent=String(state.score);
+    dom.streak.textContent=state.streak>0 ? "🔥 "+state.streak : "0";
+  }
+
+  function setSceneImage(src,alt){
+    dom.sceneImage.hidden=true;
+    dom.scenePlaceholder.hidden=false;
+    dom.sceneImage.removeAttribute("src");
+    dom.sceneImage.alt=alt || "";
+
+    if(!src) return;
+
+    dom.sceneImage.onload=function(){
+      dom.scenePlaceholder.hidden=true;
+      dom.sceneImage.hidden=false;
+    };
+    dom.sceneImage.onerror=function(){
+      dom.sceneImage.hidden=true;
+      dom.scenePlaceholder.hidden=false;
+    };
+    dom.sceneImage.src=src;
+  }
+
+  function clearAnswerState(){
+    clearTimeout(autoNextTimer);
+    autoNextTimer=null;
+    state.locked=false;
+    dom.feedback.hidden=true;
+    dom.expectedBtn.disabled=false;
+    dom.unexpectedBtn.disabled=false;
+    dom.expectedBtn.classList.remove("correct-choice","wrong-choice");
+    dom.unexpectedBtn.classList.remove("correct-choice","wrong-choice");
+  }
+
+  function renderScenario(){
+    if(state.index>=state.deck.length){
+      finishGame();
+      return;
+    }
+
+    clearAnswerState();
+
+    var s=state.deck[state.index];
+    dom.situationText.textContent=s.text;
+    setSceneImage(s.image,"Situación de "+s.value);
+    updateHud();
+  }
+
+  function answer(choice){
+    if(state.locked) return;
+    state.locked=true;
+
+    var s=state.deck[state.index];
+    var correct=choice===s.expected;
+    var chosenBtn=choice ? dom.expectedBtn : dom.unexpectedBtn;
+    var correctBtn=s.expected ? dom.expectedBtn : dom.unexpectedBtn;
+
+    dom.expectedBtn.disabled=true;
+    dom.unexpectedBtn.disabled=true;
+
+    if(correct){
+      state.correct++;
+      state.streak++;
+      state.bestStreak=Math.max(state.bestStreak,state.streak);
+      var bonus=Math.min(100,(state.streak-1)*20);
+      state.score+=100+bonus;
+      chosenBtn.classList.add("correct-choice");
+      dom.resultChip.className="result-chip good";
+      dom.resultChip.textContent=bonus>0 ? "✓ Correcto · +"+(100+bonus) : "✓ Correcto · +100";
+    }else{
+      state.streak=0;
+      chosenBtn.classList.add("wrong-choice");
+      correctBtn.classList.add("correct-choice");
+      dom.resultChip.className="result-chip bad";
+      dom.resultChip.textContent="✕ No exactamente";
+    }
+
+    dom.valueReveal.textContent=s.value;
+    dom.feedbackText.textContent=s.feedback;
+    dom.feedback.hidden=false;
+
+    dom.score.textContent=String(state.score);
+    dom.streak.textContent=state.streak>0 ? "🔥 "+state.streak : "0";
+    dom.progressFill.style.width=(((state.index+1)/TOTAL_ROUNDS)*100)+"%";
+
+    dom.nextBtn.textContent=state.index===TOTAL_ROUNDS-1 ? "Ver resultado →" : "Siguiente situación →";
+
+    clearTimeout(autoNextTimer);
+    autoNextTimer=setTimeout(function(){
+      next();
+    },3000);
+  }
+
+  function next(){
+    if(!state.locked) return;
+    clearTimeout(autoNextTimer);
+    autoNextTimer=null;
+    state.index++;
+    renderScenario();
+  }
+
+  function startGame(){
+    clearTimeout(autoNextTimer);
+    autoNextTimer=null;
+    resetState();
+    showScreen(dom.gameScreen);
+    renderScenario();
+  }
+
+  function finishGame(){
+    clearTimeout(autoNextTimer);
+    autoNextTimer=null;
+    var accuracy=Math.round((state.correct/TOTAL_ROUNDS)*100);
+    dom.finalAccuracy.textContent=accuracy+"%";
+    dom.finalScore.textContent=String(state.score);
+    dom.finalCorrect.textContent=state.correct+"/"+TOTAL_ROUNDS;
+    dom.finalStreak.textContent=String(state.bestStreak);
+    showScreen(dom.endScreen);
+  }
+
+  function goHome(){
+    clearTimeout(autoNextTimer);
+    autoNextTimer=null;
+    if(HUB_MODE && window.parent!==window){
+      window.parent.postMessage({type:"ORICA_CHOOSE_GAME"},"*");
+      return;
+    }
+    showScreen(dom.startScreen);
+  }
+
+  dom.startBtn.addEventListener("click",startGame);
+  dom.againBtn.addEventListener("click",startGame);
+  dom.homeBtn.addEventListener("click",goHome);
+  dom.expectedBtn.addEventListener("click",function(){answer(true);});
+  dom.unexpectedBtn.addEventListener("click",function(){answer(false);});
+  dom.nextBtn.addEventListener("click",next);
+
+  if(HUB_MODE){
+    dom.homeBtn.textContent="Elegir juego";
+    startGame();
+  }
+
+  document.addEventListener("keydown",function(e){
+    if(!dom.gameScreen.classList.contains("active")) return;
+    if(state.locked && (e.key==="Enter" || e.key===" ")){ e.preventDefault(); next(); return; }
+    if(state.locked) return;
+    if(e.key==="ArrowLeft" || e.key==="1"){ answer(true); }
+    if(e.key==="ArrowRight" || e.key==="2"){ answer(false); }
+  });
+})();
+</script>
+</body>
+</html>
