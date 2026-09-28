@@ -385,7 +385,7 @@ body.portrait-layout .stand-number-badge{
   function registerOfflineCache(){
     if(location.protocol==="file:") { setOfflineStatus("Modo local listo","ready"); return; }
     if(!("serviceWorker" in navigator)) { setOfflineStatus("Sin cache automatica","error"); return; }
-    navigator.serviceWorker.register("./ogopt-sw.js").then(function(){
+    navigator.serviceWorker.register("./ogopt-sw.js",{updateViaCache:"none"}).then(function(reg){\n      try{reg.update();}catch(e){}
       return navigator.serviceWorker.ready;
     }).then(function(reg){
       setOfflineStatus("Guardando archivos...");
