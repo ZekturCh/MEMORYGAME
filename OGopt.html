@@ -411,45 +411,44 @@ body::before{opacity:.08!important}
   function initFullscreenTrigger(){
     var trigger=document.getElementById("fullscreenTap");
     if(!trigger) return;
-    var pressedAt=0;
+    var taps=0, tapTimer=null;
 
     function isFullscreen(){
       return !!(document.fullscreenElement || document.webkitFullscreenElement);
     }
-    function enterFullscreen(){
+    function toggleFullscreen(){
+      if(isFullscreen()){
+        var exit=document.exitFullscreen || document.webkitExitFullscreen;
+        if(exit){
+          try{
+            var exitResult=exit.call(document);
+            if(exitResult && typeof exitResult.catch==="function") exitResult.catch(function(){});
+          }catch(e){}
+        }
+        return;
+      }
+
       var root=document.documentElement;
       var request=root.requestFullscreen || root.webkitRequestFullscreen;
-      if(request) {
+      if(request){
         try{
           var result=request.call(root);
           if(result && typeof result.catch==="function") result.catch(function(){});
         }catch(e){}
       }
     }
-    function exitFullscreen(){
-      var exit=document.exitFullscreen || document.webkitExitFullscreen;
-      if(exit) {
-        try{
-          var result=exit.call(document);
-          if(result && typeof result.catch==="function") result.catch(function(){});
-        }catch(e){}
-      }
-    }
-    function toggleFullscreen(){
-      if(isFullscreen()) exitFullscreen();
-      else enterFullscreen();
-    }
 
-    trigger.addEventListener("pointerdown",function(e){
-      pressedAt=Date.now();
-      try{trigger.setPointerCapture(e.pointerId);}catch(err){}
+    trigger.addEventListener("click",function(e){
+      e.preventDefault();
+      taps++;
+      clearTimeout(tapTimer);
+      tapTimer=setTimeout(function(){taps=0;},1200);
+      if(taps>=5){
+        taps=0;
+        clearTimeout(tapTimer);
+        toggleFullscreen();
+      }
     });
-    trigger.addEventListener("pointerup",function(){
-      var held=Date.now()-pressedAt;
-      pressedAt=0;
-      if(held>=1200) toggleFullscreen();
-    });
-    trigger.addEventListener("pointercancel",function(){pressedAt=0;});
   }
   initFullscreenTrigger();
 
