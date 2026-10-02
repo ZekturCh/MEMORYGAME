@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Visor panorámico 360</title>
+<style>
+  :root{
+    color-scheme:dark;
+    --bg:#080a0d;
+    --panel:rgba(12,15,20,.82);
+    --line:rgba(255,255,255,.14);
+    --text:#f5f7fb;
+    --muted:#aab2bf;
+    --accent:#7c5cff;
+  }
+  *{box-sizing:border-box}
+  html,body{width:100%;height:100%;margin:0;overflow:hidden;background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:var(--text)}
+  #app{position:relative;width:100%;height:100%}
+  #gl{display:block;width:100%;height:100%;touch-action:none;cursor:grab;background:#050608}
+  #gl.dragging{cursor:grabbing}
+  .topbar{
+    position:absolute;left:16px;right:16px;top:16px;z-index:5;
+    display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+    padding:10px;border:1px solid var(--line);border-radius:16px;
+    background:var(--panel);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    box-shadow:0 12px 38px rgba(0,0,0,.28);
+  }
+  .brand{font-weight:800;letter-spacing:.2px;margin-right:auto;padding:0 6px;white-space:nowrap}
+  .brand small{display:block;font-weight:500;color:var(--muted);font-size:11px;margin-top:2px}
+  button,.filebtn{
+    appearance:none;border:1px solid var(--line);background:rgba(255,255,255,.07);color:var(--text);
+    border-radius:11px;padding:9px 12px;font-weight:700;font-size:13px;cursor:pointer;
+    transition:.16s ease;white-space:nowrap;
+  }
+  button:hover,.filebtn:hover{background:rgba(255,255,255,.13);transform:translateY(-1px)}
+  .filebtn{background:var(--accent);border-color:transparent}
+  #file{display:none}
+  #status{
+    position:absolute;left:50%;bottom:18px;transform:translateX(-50%);z-index:5;
+    max-width:min(92vw,760px);padding:9px 13px;border:1px solid var(--line);
+    border-radius:999px;background:var(--panel);backdrop-filter:blur(12px);
+    color:var(--muted);font-size:12px;text-align:center;pointer-events:none;
+  }
+  #drop{
+    position:absolute;inset:0;z-index:4;display:grid;place-items:center;
+    pointer-events:none;transition:.18s ease;
+  }
+  .empty{
+    width:min(88vw,580px);padding:34px 28px;text-align:center;border:1px dashed rgba(255,255,255,.25);
+    border-radius:24px;background:rgba(11,13,18,.68);backdrop-filter:blur(12px);
+  }
+  .empty h1{font-size:clamp(22px,4vw,38px);margin:0 0 10px}
+  .empty p{margin:0;color:var(--muted);line-height:1.55}
+  #drop.hidden{opacity:0}
+  #drop.dragover{background:rgba(124,92,255,.16)}
+  #drop.dragover .empty{border-color:#a28cff;transform:scale(1.02)}
+  .help{
+    position:absolute;right:18px;bottom:66px;z-index:5;padding:8px 10px;border-radius:10px;
+    background:rgba(0,0,0,.38);color:#d5d9e1;font-size:11px;pointer-events:none;
+  }
+  @media (max-width:680px){
+    .topbar{left:10px;right:10px;top:10px}
+    .brand{width:100%}
+    .help{display:none}
+    button,.filebtn{padding:8px 10px;font-size:12px}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="gl"></canvas>
+
+  <div class="topbar">
+    <div class="brand">Visor panorámico 360<small>Todo funciona localmente · sin subir la imagen a internet</small></div>
+    <label class="filebtn" for="file">Cargar panorámica</label>
+    <input id="file" type="file" accept="image/*">
+    <button id="reset" type="button">Centrar</button>
+    <button id="fullscreen" type="button">Pantalla completa</button>
+  </div>
+
+  <div id="drop">
+    <div class="empty">
+      <h1>Carga una imagen panorámica</h1>
+      <p>Ideal: formato equirectangular 2:1. También puedes arrastrar la imagen directamente a esta ventana.</p>
+    </div>
+  </div>
+
+  <div class="help">Arrastra para mirar · Rueda/pellizca para zoom</div>
+  <div id="status">Esperando una imagen panorámica…</div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  const canvas = document.getElementById('gl');
+  const fileInput = document.getElementById('file');
+  const drop = document.getElementById('drop');
+  const status = document.getElementById('status');
+  const resetBtn = document.getElementById('reset');
+  const fullscreenBtn = document.getElementById('fullscreen');
+
+  const gl = canvas.getContext('webgl', {
+    antialias: true,
+    alpha: false,
+    premultipliedAlpha: false,
+    preserveDrawingBuffer: false
+  });
+
+  if (!gl) {
+    status.textContent = 'Este navegador no soporta WebGL.';
+    return;
+  }
+
+  const vertexShaderSource = `
+    attribute vec2 a_position;
+    varying vec2 v_uv;
+    void main() {
+      v_uv = a_position * 0.5 + 0.5;
+      gl_Position = vec4(a_position, 0.0, 1.0);
+    }
+  `;
+
+  const fragmentShaderSource = `
+    precision highp float;
+    varying vec2 v_uv;
+    uniform sampler2D u_texture;
+    uniform vec2 u_resolution;
+    uniform float u_yaw;
+    uniform float u_pitch;
+    uniform float u_fov;
+    uniform float u_hasTexture;
+
+    const float PI = 3.14159265358979323846264;
+
+    mat3 rotX(float a) {
+      float c = cos(a), s = sin(a);
+      return mat3(
+        1.0, 0.0, 0.0,
+        0.0, c,  s,
+        0.0,-s,  c
+      );
+    }
+
+    mat3 rotY(float a) {
+      float c = cos(a), s = sin(a);
+      return mat3(
+         c, 0.0,-s,
+       0.0, 1.0, 0.0,
+         s, 0.0, c
+      );
+    }
+
+    void main() {
+      if (u_hasTexture < 0.5) {
+        vec2 p = v_uv - 0.5;
+        float vignette = 1.0 - smoothstep(0.15, 0.8, length(p));
+        vec3 base = mix(vec3(0.015,0.018,0.026), vec3(0.045,0.035,0.085), vignette * 0.45);
+        gl_FragColor = vec4(base, 1.0);
+        return;
+      }
+
+      vec2 ndc = v_uv * 2.0 - 1.0;
+      ndc.x *= u_resolution.x / max(u_resolution.y, 1.0);
+
+      float focal = 1.0 / tan(u_fov * 0.5);
+      vec3 dir = normalize(vec3(ndc.x, ndc.y, -focal));
+
+      dir = rotY(u_yaw) * rotX(u_pitch) * dir;
+
+      float lon = atan(dir.x, -dir.z);
+      float lat = asin(clamp(dir.y, -1.0, 1.0));
+
+      vec2 uv;
+      uv.x = fract(lon / (2.0 * PI) + 0.5);
+      uv.y = clamp(0.5 - lat / PI, 0.001, 0.999);
+
+      vec4 color = texture2D(u_texture, uv);
+      gl_FragColor = vec4(color.rgb, 1.0);
+    }
+  `;
+
+  function compile(type, source) {
+    const shader = gl.createShader(type);
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+      const msg = gl.getShaderInfoLog(shader);
+      gl.deleteShader(shader);
+      throw new Error(msg);
+    }
+    return shader;
+  }
+
+  const program = gl.createProgram();
+  gl.attachShader(program, compile(gl.VERTEX_SHADER, vertexShaderSource));
+  gl.attachShader(program, compile(gl.FRAGMENT_SHADER, fragmentShaderSource));
+  gl.linkProgram(program);
+
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    throw new Error(gl.getProgramInfoLog(program));
+  }
+
+  const positionBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+    -1,-1, 1,-1, -1,1,
+    -1, 1, 1,-1, 1,1
+  ]), gl.STATIC_DRAW);
+
+  const aPosition = gl.getAttribLocation(program, 'a_position');
+  const uTexture = gl.getUniformLocation(program, 'u_texture');
+  const uResolution = gl.getUniformLocation(program, 'u_resolution');
+  const uYaw = gl.getUniformLocation(program, 'u_yaw');
+  const uPitch = gl.getUniformLocation(program, 'u_pitch');
+  const uFov = gl.getUniformLocation(program, 'u_fov');
+  const uHasTexture = gl.getUniformLocation(program, 'u_hasTexture');
+
+  const texture = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+  let yaw = 0;
+  let pitch = 0;
+  let fov = 72 * Math.PI / 180;
+  let hasTexture = false;
+  let currentName = '';
+  let imageWidth = 0;
+  let imageHeight = 0;
+  let dragging = false;
+  let lastX = 0;
+  let lastY = 0;
+  let pinchDistance = 0;
+
+  function clamp(v, min, max) {
+    return Math.max(min, Math.min(max, v));
+  }
+
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = Math.max(1, Math.floor(canvas.clientWidth * dpr));
+    const h = Math.max(1, Math.floor(canvas.clientHeight * dpr));
+    if (canvas.width !== w || canvas.height !== h) {
+      canvas.width = w;
+      canvas.height = h;
+    }
+    gl.viewport(0, 0, canvas.width, canvas.height);
+  }
+
+  function draw() {
+    resize();
+    gl.useProgram(program);
+    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+    gl.enableVertexAttribArray(aPosition);
+    gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
+
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.uniform1i(uTexture, 0);
+    gl.uniform2f(uResolution, canvas.width, canvas.height);
+    gl.uniform1f(uYaw, yaw);
+    gl.uniform1f(uPitch, pitch);
+    gl.uniform1f(uFov, fov);
+    gl.uniform1f(uHasTexture, hasTexture ? 1 : 0);
+
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+  }
+
+  function setStatus() {
+    if (!hasTexture) {
+      status.textContent = 'Esperando una imagen panorámica…';
+      return;
+    }
+    const ratio = imageWidth / imageHeight;
+    const ratioText = ratio.toFixed(2) + ':1';
+    const warning = Math.abs(ratio - 2) > 0.16 ? ' · ⚠ No parece 2:1; podría verse deformada' : ' · formato 2:1 correcto';
+    status.textContent = currentName + ' · ' + imageWidth + '×' + imageHeight + ' · ' + ratioText + warning;
+  }
+
+  function resetView() {
+    yaw = 0;
+    pitch = 0;
+    fov = 72 * Math.PI / 180;
+    draw();
+  }
+
+  function loadFile(file) {
+    if (!file || !file.type.startsWith('image/')) {
+      status.textContent = 'Selecciona un archivo de imagen válido.';
+      return;
+    }
+
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+
+    img.onload = () => {
+      gl.bindTexture(gl.TEXTURE_2D, texture);
+
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+      gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
+
+      try {
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+      } catch (err) {
+        URL.revokeObjectURL(url);
+        status.textContent = 'No se pudo cargar la imagen en WebGL. Prueba una imagen más pequeña.';
+        return;
+      }
+
+      if (isPowerOf2(img.width) && isPowerOf2(img.height)) {
+        gl.generateMipmap(gl.TEXTURE_2D);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+      } else {
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      }
+
+      currentName = file.name;
+      imageWidth = img.width;
+      imageHeight = img.height;
+      hasTexture = true;
+      drop.classList.add('hidden');
+      resetView();
+      setStatus();
+      URL.revokeObjectURL(url);
+    };
+
+    img.onerror = () => {
+      status.textContent = 'No se pudo leer esa imagen.';
+      URL.revokeObjectURL(url);
+    };
+
+    img.src = url;
+  }
+
+  function isPowerOf2(v) {
+    return (v & (v - 1)) === 0;
+  }
+
+  function pointerXY(e) {
+    return {x:e.clientX, y:e.clientY};
+  }
+
+  canvas.addEventListener('pointerdown', e => {
+    if (!hasTexture) return;
+    dragging = true;
+    canvas.classList.add('dragging');
+    canvas.setPointerCapture(e.pointerId);
+    const p = pointerXY(e);
+    lastX = p.x;
+    lastY = p.y;
+  });
+
+  canvas.addEventListener('pointermove', e => {
+    if (!dragging || !hasTexture) return;
+    const p = pointerXY(e);
+    const dx = p.x - lastX;
+    const dy = p.y - lastY;
+    lastX = p.x;
+    lastY = p.y;
+
+    const sensitivity = fov / Math.max(canvas.clientHeight, 1);
+    yaw -= dx * sensitivity;
+    pitch += dy * sensitivity;
+    pitch = clamp(pitch, -Math.PI * 0.49, Math.PI * 0.49);
+    draw();
+  });
+
+  function endPointer(e) {
+    dragging = false;
+    canvas.classList.remove('dragging');
+    try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
+  }
+
+  canvas.addEventListener('pointerup', endPointer);
+  canvas.addEventListener('pointercancel', endPointer);
+
+  canvas.addEventListener('wheel', e => {
+    if (!hasTexture) return;
+    e.preventDefault();
+    const delta = Math.sign(e.deltaY);
+    fov = clamp(fov + delta * 5 * Math.PI / 180, 30 * Math.PI / 180, 105 * Math.PI / 180);
+    draw();
+  }, {passive:false});
+
+  canvas.addEventListener('touchstart', e => {
+    if (e.touches.length === 2) {
+      pinchDistance = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+    }
+  }, {passive:true});
+
+  canvas.addEventListener('touchmove', e => {
+    if (!hasTexture || e.touches.length !== 2 || !pinchDistance) return;
+    const d = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+    const scale = pinchDistance / Math.max(d, 1);
+    fov = clamp(fov * scale, 30 * Math.PI / 180, 105 * Math.PI / 180);
+    pinchDistance = d;
+    draw();
+  }, {passive:true});
+
+  canvas.addEventListener('touchend', () => { pinchDistance = 0; }, {passive:true});
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files && fileInput.files[0]) loadFile(fileInput.files[0]);
+    fileInput.value = '';
+  });
+
+  resetBtn.addEventListener('click', resetView);
+
+  fullscreenBtn.addEventListener('click', async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch (_) {
+      status.textContent = 'El navegador bloqueó el modo pantalla completa.';
+    }
+  });
+
+  ['dragenter','dragover'].forEach(type => {
+    window.addEventListener(type, e => {
+      e.preventDefault();
+      drop.classList.add('dragover');
+    });
+  });
+
+  ['dragleave','drop'].forEach(type => {
+    window.addEventListener(type, e => {
+      e.preventDefault();
+      drop.classList.remove('dragover');
+    });
+  });
+
+  window.addEventListener('drop', e => {
+    const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (file) loadFile(file);
+  });
+
+  window.addEventListener('resize', draw);
+  document.addEventListener('fullscreenchange', draw);
+
+  draw();
+})();
+</script>
+</body>
+</html>
