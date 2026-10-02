@@ -39,8 +39,8 @@
   #status{
     position:absolute;left:50%;bottom:18px;transform:translateX(-50%);z-index:5;
     max-width:min(92vw,760px);padding:9px 13px;border:1px solid var(--line);
-    border-radius:999px;background:var(--panel);backdrop-filter:blur(12px);
-    color:var(--muted);font-size:12px;text-align:center;pointer-events:none;
+    border-radius:999px;background:rgba(12,15,20,.92);backdrop-filter:blur(12px);
+    color:#eef2f7;font-size:12px;text-align:center;pointer-events:none;
   }
   #drop{
     position:absolute;inset:0;z-index:4;display:grid;place-items:center;
@@ -219,7 +219,9 @@
 
   const texture = gl.createTexture();
   gl.bindTexture(gl.TEXTURE_2D, texture);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+  // WebGL 1 exige CLAMP_TO_EDGE para texturas NPOT (p. ej. 6000x3000).
+  // El shader ya hace fract() en X, así que no necesitamos REPEAT aquí.
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
@@ -288,56 +290,96 @@
     draw();
   }
 
+  function uploadPanoramaSource(source, sourceWidth, sourceHeight) {
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+
+    // Siempre NPOT-safe: sin mipmaps y con clamp.
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+    // Limpia errores WebGL anteriores antes de comprobar la subida.
+    while (gl.getError() !== gl.NO_ERROR) {}
+
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
+
+    const err = gl.getError();
+    if (err !== gl.NO_ERROR) {
+      throw new Error('WebGL texture upload error: ' + err);
+    }
+  }
+
   function loadFile(file) {
     if (!file || !file.type.startsWith('image/')) {
       status.textContent = 'Selecciona un archivo de imagen válido.';
       return;
     }
 
+    status.textContent = 'Cargando ' + file.name + '…';
+
     const url = URL.createObjectURL(file);
     const img = new Image();
 
     img.onload = () => {
-      gl.bindTexture(gl.TEXTURE_2D, texture);
-
-      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-      gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
-
       try {
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+        imageWidth = img.naturalWidth || img.width;
+        imageHeight = img.naturalHeight || img.height;
+
+        // Para una previsualización 360 estable no hace falta subir 12K/16K
+        // completo a la GPU. 4096px de ancho es suficiente y evita pantalla negra
+        // en equipos con menos memoria gráfica.
+        const gpuMax = gl.getParameter(gl.MAX_TEXTURE_SIZE) || 4096;
+        const previewMax = Math.min(gpuMax, 4096);
+        const scale = Math.min(1, previewMax / imageWidth, previewMax / imageHeight);
+
+        let source = img;
+        let uploadedWidth = imageWidth;
+        let uploadedHeight = imageHeight;
+
+        if (scale < 1) {
+          uploadedWidth = Math.max(1, Math.round(imageWidth * scale));
+          uploadedHeight = Math.max(1, Math.round(imageHeight * scale));
+
+          const temp = document.createElement('canvas');
+          temp.width = uploadedWidth;
+          temp.height = uploadedHeight;
+          const ctx = temp.getContext('2d', { alpha: false });
+          if (!ctx) throw new Error('No se pudo crear el canvas temporal.');
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(img, 0, 0, uploadedWidth, uploadedHeight);
+          source = temp;
+        }
+
+        uploadPanoramaSource(source, uploadedWidth, uploadedHeight);
+
+        currentName = file.name;
+        hasTexture = true;
+        drop.classList.add('hidden');
+        resetView();
+        setStatus();
+
+        if (scale < 1) {
+          status.textContent += ' · preview GPU ' + uploadedWidth + '×' + uploadedHeight;
+        }
       } catch (err) {
+        console.error(err);
+        hasTexture = false;
+        drop.classList.remove('hidden');
+        status.textContent = 'No se pudo cargar esta imagen en el visor. Prueba JPG/PNG equirectangular 2:1.';
+      } finally {
         URL.revokeObjectURL(url);
-        status.textContent = 'No se pudo cargar la imagen en WebGL. Prueba una imagen más pequeña.';
-        return;
       }
-
-      if (isPowerOf2(img.width) && isPowerOf2(img.height)) {
-        gl.generateMipmap(gl.TEXTURE_2D);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
-      } else {
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-      }
-
-      currentName = file.name;
-      imageWidth = img.width;
-      imageHeight = img.height;
-      hasTexture = true;
-      drop.classList.add('hidden');
-      resetView();
-      setStatus();
-      URL.revokeObjectURL(url);
     };
 
     img.onerror = () => {
-      status.textContent = 'No se pudo leer esa imagen.';
+      status.textContent = 'No se pudo leer esa imagen. Prueba con JPG o PNG.';
       URL.revokeObjectURL(url);
     };
 
     img.src = url;
-  }
-
-  function isPowerOf2(v) {
-    return (v & (v - 1)) === 0;
   }
 
   function pointerXY(e) {
