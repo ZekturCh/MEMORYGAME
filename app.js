@@ -29,7 +29,7 @@ const turnRef = (id) => ref(db, `${turnsPath}/${id}`);
 const eventRecord = (text) => ({ type: "text", text, createdAt: serverTimestamp() });
 const duration = 15_000;
 const maxPathLength = 11_000;
-const initialControl = { color: "white", effect: "focus", moving: false, pop: 0 };
+const initialControl = { color: "white", x: 0, y: 0, pulses: {} };
 const colors = { white: "#fff", pink: "#ff42ad", cyan: "#55eeff", yellow: "#fff080", green: "#9cff8d" };
 let serverOffset = 0;
 
@@ -39,6 +39,16 @@ onValue(ref(db, ".info/serverTimeOffset"), (snapshot) => {
 
 const serverNow = () => Date.now() + serverOffset;
 const timeLeft = (item) => Math.max(0, Math.min(duration, item.startedAt + duration - serverNow()));
+const clampAxis = (value) => Math.max(-1, Math.min(1, Number(value) || 0));
+const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
+const pulseEffects = {
+  fade: { target: "content", duration: 950, frames: [{ opacity: 1 }, { opacity: .16, offset: .32 }, { opacity: 1 }] },
+  blur: { target: "content", duration: 950, frames: [{ filter: "blur(0px)" }, { filter: "blur(11px)", offset: .32 }, { filter: "blur(0px)" }] },
+  focus: { target: "motion", duration: 900, frames: [{ filter: "drop-shadow(0 0 0 transparent)" }, { filter: "drop-shadow(0 0 12px currentColor)", offset: .32 }, { filter: "drop-shadow(0 0 0 transparent)" }] },
+  squeeze: { target: "motion", duration: 550, frames: [
+    { scale: "1" }, { scale: ".68 .83", offset: .26 }, { scale: "1.25 1.15", offset: .61 }, { scale: "1" }
+  ] }
+};
 
 function setStatus(text, error = false) {
   const status = byId("status");
@@ -103,22 +113,22 @@ function applyControl(mark, control) {
   if (!mark) return;
   control = control || initialControl;
   mark.style.setProperty("--ink", Object.hasOwn(colors, control.color) ? colors[control.color] : colors.white);
-  mark.style.setProperty("--opacity", control.effect === "fade" ? ".22" : "1");
-  mark.style.setProperty("--blur", control.effect === "blur" ? "10px" : "0px");
-  mark.dataset.moving = String(control.moving === true);
-
-  const pop = Number(control.pop) || 0;
-  if (pop > Number(mark.dataset.pop || 0) && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
-    const motion = mark.firstElementChild;
-    motion.getAnimations().filter((animation) => animation.id === "squeeze").forEach((animation) => animation.cancel());
-    motion.animate([
-      { transform: "scale(1)" },
-      { transform: "scale(.68, .83)", offset: .26 },
-      { transform: "scale(1.25, 1.15)", offset: .61 },
-      { transform: "scale(1)" }
-    ], { id: "squeeze", duration: 550, easing: "ease-in-out" });
+  const motion = mark.firstElementChild;
+  const content = motion.firstElementChild;
+  mark.dataset.steered = "";
+  mark.style.setProperty("--steer-x", `${clampAxis(control.x) * 23}%`);
+  mark.style.setProperty("--steer-y", `${clampAxis(control.y) * 27}%`);
+  for (const [name, effect] of Object.entries(pulseEffects)) {
+    const stamp = Number(control.pulses?.[name]);
+    if (!stamp || stamp <= Number(mark.dataset[name] || 0)) continue;
+    mark.dataset[name] = String(stamp);
+    const elapsed = Math.max(0, serverNow() - stamp);
+    if (elapsed >= effect.duration || (name === "squeeze" && reducedMotion.matches)) continue;
+    const target = effect.target === "motion" ? motion : content;
+    target.getAnimations().find((animation) => animation.id === name)?.cancel();
+    const animation = target.animate(effect.frames, { id: name, duration: effect.duration, easing: "ease-in-out" });
+    animation.currentTime = elapsed;
   }
-  mark.dataset.pop = String(pop);
 }
 
 if (document.body.dataset.page === "tablet") initTablet();
@@ -136,6 +146,13 @@ function initTablet() {
   let submitting = false;
   let session = null;
   let resetTimer;
+  const joystick = bindJoystick(byId("joystick"), (dx, dy) => {
+    if (!session || !connected) return;
+    const { x, y } = session.control;
+    const nextX = clampAxis(x + dx);
+    const nextY = clampAxis(y + dy);
+    if (nextX !== x || nextY !== y) changeControl({ x: nextX, y: nextY }, true);
+  });
 
   function show(view) {
     for (const id of ["compose", "playView", "sentView"]) byId(id).hidden = id !== view;
@@ -156,11 +173,17 @@ function initTablet() {
     ink.resize();
   }
 
-  function finish() {
+  function stopSession() {
     clearInterval(session.timer);
+    clearTimeout(session.pendingWrite);
     session.stop();
     session = null;
+    joystick.stop();
     preview.replaceChildren();
+  }
+
+  function finish() {
+    stopSession();
     show("sentView");
     setStatus(connected ? "" : "Sin conexión con la pantalla.", !connected);
     byId("newMark").focus();
@@ -174,20 +197,17 @@ function initTablet() {
   }
 
   function tick() {
-    if (!session?.item.startedAt) return;
-    const remaining = timeLeft(session.item);
+    if (session?.deadline === undefined) return;
+    const remaining = Math.max(0, session.deadline - performance.now());
     updateTimer(remaining);
     if (remaining === 0) finish();
   }
 
   function displayControl(control) {
     applyControl(preview.firstElementChild, control);
-    document.querySelectorAll("[data-color], [data-effect]").forEach((button) => {
-      const selected = button.dataset.color === control.color || button.dataset.effect === control.effect;
-      button.setAttribute("aria-pressed", String(selected));
+    document.querySelectorAll("[data-color]").forEach((button) => {
+      button.setAttribute("aria-pressed", String(button.dataset.color === control.color));
     });
-    byId("motion").textContent = control.moving ? "Centrar" : "Mover";
-    byId("motion").setAttribute("aria-pressed", String(control.moving));
   }
 
   function play(itemRef, item) {
@@ -199,28 +219,42 @@ function initTablet() {
     byId("playTitle").textContent = "En cola para la pantalla";
     byId("playHint").textContent = "Tu turno empieza cuando tu huella aparezca en el centro.";
     byId("playControls").hidden = true;
+    byId("leaveQueue").hidden = false;
     displayControl(session.control);
     show("playView");
     current.timer = setInterval(tick, 100);
     current.stop = onValue(turnRef(itemRef.key), (snapshot) => {
-      if (session !== current || !snapshot.exists()) return;
+      if (session !== current || current.deadline !== undefined || !snapshot.exists()) return;
       current.item.startedAt = Number(snapshot.val().createdAt);
       if (!current.item.startedAt) return;
+      current.deadline = performance.now() + timeLeft(current.item);
       byId("playTitle").textContent = "¡Juega con tu huella!";
-      byId("playHint").textContent = "Prueba un color, un efecto o aprieta tu huella.";
+      byId("playHint").textContent = "Mueve tu huella con el joystick y combina los efectos.";
+      byId("leaveQueue").hidden = true;
       byId("playControls").hidden = false;
       tick();
     }, () => setStatus("No se pudo leer el turno en la pantalla.", true));
   }
 
-  function changeControl(change) {
-    if (!connected || !session?.item.startedAt || timeLeft(session.item) === 0) return;
+  function writeControl(current) {
+    clearTimeout(current.pendingWrite);
+    current.pendingWrite = null;
+    if (session !== current || !connected || performance.now() >= current.deadline) return;
+    current.lastWrite = performance.now();
+    push(current.controlRef, { ...eventRecord("turn-effect"), control: current.control }).catch(() => {
+      if (session === current) setStatus("El mando perdió conexión. Vuelve a intentarlo.", true);
+    });
+  }
+
+  function changeControl(change, steering = false) {
+    if (!connected || session?.deadline === undefined || performance.now() >= session.deadline) return;
     const current = session;
     current.control = { ...current.control, ...change };
-    displayControl(current.control);
-    push(current.controlRef, { ...eventRecord("turn-effect"), control: current.control }).catch(() => {
-      if (session === current) setStatus("El efecto no llegó a la pantalla. Vuelve a intentarlo.", true);
-    });
+    if (steering) applyControl(preview.firstElementChild, current.control);
+    else displayControl(current.control);
+    const delay = 75 - (performance.now() - (current.lastWrite ?? -Infinity));
+    if (!steering || delay <= 0) writeControl(current);
+    else if (!current.pendingWrite) current.pendingWrite = setTimeout(() => writeControl(current), delay);
   }
 
   form.addEventListener("submit", async (event) => {
@@ -271,22 +305,106 @@ function initTablet() {
     if (connected) setStatus("");
   });
   byId("newMark").addEventListener("click", reset);
-  document.querySelectorAll("[data-color], [data-effect]").forEach((button) => {
-    button.addEventListener("click", () => changeControl(button.dataset.color
-      ? { color: button.dataset.color }
-      : { effect: button.dataset.effect }));
+  byId("leaveQueue").addEventListener("click", () => {
+    if (!session || session.deadline !== undefined) return;
+    stopSession();
+    reset();
   });
-  byId("squeeze").addEventListener("click", () => {
-    if (session) changeControl({ pop: session.control.pop + 1 });
+  document.querySelectorAll("[data-color]").forEach((button) => {
+    button.addEventListener("click", () => changeControl({ color: button.dataset.color }));
   });
-  byId("motion").addEventListener("click", () => {
-    if (session) changeControl({ moving: !session.control.moving });
+  document.querySelectorAll("[data-effect]").forEach((button) => {
+    button.addEventListener("click", () => {
+      if (!session) return;
+      const name = button.dataset.effect;
+      const pulses = session.control.pulses;
+      changeControl({ pulses: { ...pulses, [name]: Math.max(serverNow(), (pulses[name] || 0) + 1) } });
+    });
   });
+  byId("centerMark").addEventListener("click", () => {
+    joystick.stop();
+    changeControl({ x: 0, y: 0 });
+  });
+  document.addEventListener("visibilitychange", tick);
   onValue(ref(db, ".info/connected"), (snapshot) => {
     connected = snapshot.val() === true;
+    if (!connected) joystick.stop();
     updateSend();
     setStatus(connected ? "" : "Sin conexión con la pantalla. Reconectando…", !connected);
   });
+}
+
+function bindJoystick(button, steer) {
+  const arrows = new Set(["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"]);
+  const keys = new Set();
+  let pointerId = null;
+  let x = 0;
+  let y = 0;
+  let frame = 0;
+  let previous = 0;
+
+  function update(now) {
+    const seconds = Math.min(50, previous ? now - previous : 0) / 1000;
+    previous = now;
+    steer(x * seconds * 1.9, y * seconds * 1.9);
+    frame = requestAnimationFrame(update);
+  }
+
+  function aim(dx, dy) {
+    const length = Math.max(1, Math.hypot(dx, dy));
+    x = dx / length;
+    y = dy / length;
+    const travel = button.clientWidth * .26;
+    button.style.setProperty("--stick-x", `${x * travel}px`);
+    button.style.setProperty("--stick-y", `${y * travel}px`);
+    if (x || y) {
+      if (!frame) frame = requestAnimationFrame(update);
+    } else {
+      cancelAnimationFrame(frame);
+      frame = previous = 0;
+    }
+  }
+
+  function stop() {
+    pointerId = null;
+    keys.clear();
+    aim(0, 0);
+  }
+
+  function aimPointer(event) {
+    if (event.pointerId !== pointerId) return;
+    const bounds = button.getBoundingClientRect();
+    const radius = bounds.width * .33;
+    aim((event.clientX - bounds.left - bounds.width / 2) / radius,
+      (event.clientY - bounds.top - bounds.height / 2) / radius);
+  }
+
+  button.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0 || pointerId !== null) return;
+    button.focus();
+    pointerId = event.pointerId;
+    button.setPointerCapture(pointerId);
+    aimPointer(event);
+  });
+  button.addEventListener("pointermove", aimPointer);
+  for (const event of ["pointerup", "pointercancel", "lostpointercapture"]) {
+    button.addEventListener(event, (input) => { if (input.pointerId === pointerId) stop(); });
+  }
+  function aimKeys(event) {
+    if (!arrows.has(event.key)) return;
+    event.preventDefault();
+    if (pointerId !== null) return;
+    if (event.type === "keydown") keys.add(event.key);
+    else keys.delete(event.key);
+    aim(Number(keys.has("ArrowRight")) - Number(keys.has("ArrowLeft")),
+      Number(keys.has("ArrowDown")) - Number(keys.has("ArrowUp")));
+  }
+  button.addEventListener("keydown", aimKeys);
+  button.addEventListener("keyup", aimKeys);
+  button.addEventListener("blur", stop);
+  window.addEventListener("blur", stop);
+  document.addEventListener("visibilitychange", () => { if (document.hidden) stop(); });
+  return { stop };
 }
 
 function createPad(canvas, hint) {
@@ -387,6 +505,8 @@ function initScreen() {
   let requestingStart = false;
   let retryAt = 0;
   let activeId = null;
+  let deadline = 0;
+  const finished = new Set();
   let stopEffects = () => {};
   let activeControl;
   let newestVisibleId = null;
@@ -481,31 +601,36 @@ function initScreen() {
   }
 
   function tick() {
+    if (activeId && performance.now() >= deadline) finished.add(activeId);
     const queue = feed.map((item) => ({ ...item, startedAt: turns?.get(item.id) || item.startedAt }));
     const active = queue.find((item) => item.experience === 1 && item.startedAt &&
-      Number(item.createdAt || 0) >= clearAt && timeLeft(item) > 0);
+      !finished.has(item.id) && Number(item.createdAt || 0) >= clearAt &&
+      (item.id === activeId || timeLeft(item) > 0));
     if ((active?.id || null) !== activeId) {
       activeId = active?.id || null;
+      deadline = active ? performance.now() + timeLeft(active) : 0;
       const mark = active ? makeMark(active) : null;
       stage.replaceChildren(...(mark ? [mark] : []));
       spotlight.hidden = !active;
       screen.classList.toggle("playing", Boolean(active));
       stopEffects();
       activeControl = active?.control;
+      applyControl(mark, activeControl);
       if (active) {
         stopEffects = onValue(query(effectsRef(active.id), orderByKey(), limitToLast(1)), (snapshot) => {
           if (activeId !== active.id) return;
           snapshot.forEach((child) => { activeControl = child.val()?.control; });
+          if (performance.now() < deadline) applyControl(stage.firstElementChild, activeControl);
         });
       }
     }
     if (active) {
-      updateTimer(timeLeft(active));
-      applyControl(stage.firstElementChild, activeControl);
+      updateTimer(Math.max(0, deadline - performance.now()));
     } else {
       tryStart(queue.find((item) => item.experience === 1 && !item.startedAt && Number(item.createdAt || 0) >= clearAt));
     }
-    completed = queue.filter((item) => item.experience !== 1 || (item.startedAt && timeLeft(item) === 0)).reverse();
+    completed = queue.filter((item) => item.experience !== 1 || finished.has(item.id) ||
+      (item.id !== activeId && item.startedAt && timeLeft(item) === 0)).reverse();
     renderWall();
   }
 
@@ -518,6 +643,8 @@ function initScreen() {
       }
     });
     feed = next;
+    const visibleIds = new Set(feed.map((item) => item.id));
+    for (const id of finished) if (!visibleIds.has(id)) finished.delete(id);
     if (connected) setStatus("En vivo");
     tick();
   }, () => setStatus("Sin acceso al muro.", true));
@@ -540,6 +667,8 @@ function initScreen() {
   });
   new ResizeObserver(() => renderWall()).observe(screen);
   setInterval(tick, 100);
+  document.addEventListener("visibilitychange", tick);
+  window.addEventListener("pageshow", tick);
 
   setupAdmin({
     list: () => completed.filter((item) => !suppressed.has(item.id) && Number(item.createdAt || 0) >= clearAt),

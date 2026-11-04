@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Firma e Inspira · Tablet</title>
-  <link rel="stylesheet" href="css/firma-inspira.css">
+  <link rel="stylesheet" href="css/firma-inspira.css?v=mando">
 </head>
 <body data-page="tablet">
   <main class="tablet">
@@ -39,23 +39,33 @@
         <p id="playHint">Tu turno empieza cuando tu huella aparezca en el centro.</p>
       </header>
       <div id="tabletPreview" class="preview" aria-hidden="true"></div>
+      <button id="leaveQueue" type="button">Volver a la pizarra</button>
       <div id="playControls" hidden>
         <div class="timer" aria-label="Tiempo restante">
           <progress id="timerBar" max="15" value="15"></progress><output id="seconds">15 s</output>
         </div>
-        <div class="control-group" aria-label="Color">
-          <button type="button" data-color="white" aria-pressed="true">Blanco</button>
-          <button type="button" data-color="pink" aria-pressed="false">Rosa</button>
-          <button type="button" data-color="cyan" aria-pressed="false">Cian</button>
-          <button type="button" data-color="yellow" aria-pressed="false">Amarillo</button>
-          <button type="button" data-color="green" aria-pressed="false">Verde</button>
-        </div>
-        <div class="control-group" aria-label="Efectos">
-          <button type="button" data-effect="fade" aria-pressed="false">Desvanecer</button>
-          <button type="button" data-effect="blur" aria-pressed="false">Difuminar</button>
-          <button type="button" data-effect="focus" aria-pressed="true">Enfocar</button>
-          <button type="button" id="squeeze">¡Apretar!</button>
-          <button type="button" id="motion" aria-pressed="false">Mover</button>
+        <div class="play-deck">
+          <div class="joystick-panel">
+            <button id="joystick" type="button" aria-label="Mover huella. Arrastra o mantén pulsadas las flechas del teclado.">
+              <span aria-hidden="true" class="joystick-knob"></span>
+            </button>
+            <button type="button" id="centerMark">Centrar</button>
+          </div>
+          <div class="effect-panel">
+            <div class="control-group" aria-label="Color">
+              <button type="button" data-color="white" aria-pressed="true">Blanco</button>
+              <button type="button" data-color="pink" aria-pressed="false">Rosa</button>
+              <button type="button" data-color="cyan" aria-pressed="false">Cian</button>
+              <button type="button" data-color="yellow" aria-pressed="false">Amarillo</button>
+              <button type="button" data-color="green" aria-pressed="false">Verde</button>
+            </div>
+            <div class="control-group" aria-label="Efectos">
+              <button type="button" data-effect="fade">Desvanecer</button>
+              <button type="button" data-effect="blur">Difuminar</button>
+              <button type="button" data-effect="focus">Enfocar</button>
+              <button type="button" data-effect="squeeze">¡Apretar!</button>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -68,6 +78,6 @@
     </section>
     <p id="status" role="status"></p>
   </main>
-  <script type="module" src="app.js?v=turnos"></script>
+  <script type="module" src="app.js?v=mando"></script>
 </body>
 </html>
