@@ -1,5 +1,6 @@
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
+import { createArena } from "./js/firma-arena.js";
 import {
   get, getDatabase, limitToLast, onValue, orderByChild, orderByKey, push, query, ref,
   serverTimestamp, set
@@ -28,6 +29,7 @@ const effectsRef = (id) => ref(db, `led-wall/~firma-effects~${room}~${id}/items`
 const turnRef = (id) => ref(db, `${turnsPath}/${id}`);
 const eventRecord = (text) => ({ type: "text", text, createdAt: serverTimestamp() });
 const duration = 15_000;
+const playerLimit = 4;
 const maxPathLength = 11_000;
 const initialControl = { color: "white", x: 0, y: 0, pulses: {} };
 const colors = { white: "#fff", pink: "#ff42ad", cyan: "#55eeff", yellow: "#fff080", green: "#9cff8d" };
@@ -148,6 +150,7 @@ function initTablet() {
   let resetTimer;
   const joystick = bindJoystick(byId("joystick"), (dx, dy) => {
     if (!session || !connected) return;
+    if (Math.hypot(dx, dy) > .002) session.aim = { x: dx, y: dy };
     const { x, y } = session.control;
     const nextX = clampAxis(x + dx);
     const nextY = clampAxis(y + dy);
@@ -229,7 +232,7 @@ function initTablet() {
       if (!current.item.startedAt) return;
       current.deadline = performance.now() + timeLeft(current.item);
       byId("playTitle").textContent = "¡Juega con tu huella!";
-      byId("playHint").textContent = "Mueve tu huella con el joystick y combina los efectos.";
+      byId("playHint").textContent = "Apunta con el joystick, lanza tu huella o combina efectos.";
       byId("leaveQueue").hidden = true;
       byId("playControls").hidden = false;
       tick();
@@ -324,6 +327,12 @@ function initTablet() {
   byId("centerMark").addEventListener("click", () => {
     joystick.stop();
     changeControl({ x: 0, y: 0 });
+  });
+  byId("launchMark").addEventListener("click", () => {
+    if (!session) return;
+    const at = serverNow();
+    if (at - (session.control.launch?.at || 0) < 1400) return;
+    changeControl({ launch: { at, ...(session.aim || { x: 0, y: 0 }) } });
   });
   document.addEventListener("visibilitychange", tick);
   onValue(ref(db, ".info/connected"), (snapshot) => {
@@ -496,19 +505,15 @@ function createPad(canvas, hint) {
 function initScreen() {
   const screen = document.querySelector(".screen");
   const grids = [...document.querySelectorAll(".wall-grid")];
-  const stage = byId("stageMark");
   const spotlight = byId("spotlight");
+  const arena = createArena(byId("arenaGrid"), byId("arenaProjectiles"), playerLimit);
   const wallLimit = 80;
   let feed = [];
   let turns = null;
   let connected = false;
   let requestingStart = false;
   let retryAt = 0;
-  let activeId = null;
-  let deadline = 0;
   const finished = new Set();
-  let stopEffects = () => {};
-  let activeControl;
   let newestVisibleId = null;
   let wallIds = "";
   let wallPage = 0;
@@ -536,14 +541,14 @@ function initScreen() {
       newestVisibleId = newest;
       wallPage = 0;
       pageChangedAt = Date.now();
-    } else if (!activeId && Date.now() - pageChangedAt >= 10_000) {
+    } else if (Date.now() - pageChangedAt >= 10_000) {
       wallPage = (wallPage + 1) % pages;
       pageChangedAt = Date.now();
     }
     wallPage %= pages;
     const page = visible.slice(wallPage * capacity, (wallPage + 1) * capacity);
     const nextIds = JSON.stringify([layouts, page.map((item) => item.id)]);
-    byId("emptyWall").hidden = visible.length > 0 || activeId !== null;
+    byId("emptyWall").hidden = visible.length > 0 || !spotlight.hidden;
     screen.classList.toggle("has-marks", byId("emptyWall").hidden);
     if (!force && wallIds === nextIds) return;
     wallIds = nextIds;
@@ -600,37 +605,73 @@ function initScreen() {
     }
   }
 
-  function tick() {
-    if (activeId && performance.now() >= deadline) finished.add(activeId);
-    const queue = feed.map((item) => ({ ...item, startedAt: turns?.get(item.id) || item.startedAt }));
-    const active = queue.find((item) => item.experience === 1 && item.startedAt &&
-      !finished.has(item.id) && Number(item.createdAt || 0) >= clearAt &&
-      (item.id === activeId || timeLeft(item) > 0));
-    if ((active?.id || null) !== activeId) {
-      activeId = active?.id || null;
-      deadline = active ? performance.now() + timeLeft(active) : 0;
-      const mark = active ? makeMark(active) : null;
-      stage.replaceChildren(...(mark ? [mark] : []));
-      spotlight.hidden = !active;
-      screen.classList.toggle("playing", Boolean(active));
-      stopEffects();
-      activeControl = active?.control;
-      applyControl(mark, activeControl);
-      if (active) {
-        stopEffects = onValue(query(effectsRef(active.id), orderByKey(), limitToLast(1)), (snapshot) => {
-          if (activeId !== active.id) return;
-          snapshot.forEach((child) => { activeControl = child.val()?.control; });
-          if (performance.now() < deadline) applyControl(stage.firstElementChild, activeControl);
-        });
-      }
+  function setSeat(seat, item) {
+    if (seat.id === item?.id) return;
+    seat.stopEffects?.();
+    seat.cancelFlight?.();
+    seat.id = item?.id;
+    seat.deadline = item ? performance.now() + timeLeft(item) : 0;
+    seat.lastLaunch = 0;
+    seat.timer.hidden = !item;
+    seat.idle.hidden = Boolean(item);
+    seat.panel.classList.toggle("occupied", Boolean(item));
+    const mark = item ? makeMark(item) : null;
+    seat.stage.replaceChildren(...(mark ? [mark] : []));
+    if (!item || !mark) return;
+    applyControl(mark);
+    seat.stopEffects = onValue(query(effectsRef(item.id), orderByKey(), limitToLast(1)), (snapshot) => {
+      if (seat.id !== item.id || performance.now() >= seat.deadline) return;
+      snapshot.forEach((child) => {
+        const control = child.val()?.control;
+        applyControl(mark, control);
+        const command = control?.launch;
+        const at = Number(command?.at);
+        if (at > seat.lastLaunch && serverNow() - at < 1100) {
+          seat.lastLaunch = at;
+          arena.launch(seat, command);
+        }
+      });
+    });
+  }
+
+  function assignSectors(queue) {
+    // Replay starts in server order so each display derives the same sectors.
+    const lanes = Array(playerLimit).fill(null);
+    const started = queue.filter((item) => item.experience === 1 && item.startedAt &&
+      Number(item.createdAt || 0) >= clearAt).sort((a, b) => a.startedAt - b.startedAt ||
+      (a.id < b.id ? -1 : 1));
+    for (const item of started) {
+      const index = lanes.findIndex((prior) => !prior || prior.startedAt + duration <= item.startedAt);
+      if (index !== -1) lanes[index] = item;
     }
-    if (active) {
-      updateTimer(Math.max(0, deadline - performance.now()));
-    } else {
+    return lanes.map((item) => item && !finished.has(item.id) &&
+      (arena.seats.some((seat) => seat.id === item.id) || timeLeft(item) > 0) ? item : null);
+  }
+
+  function tick() {
+    for (const seat of arena.seats) {
+      if (seat.id && performance.now() >= seat.deadline) finished.add(seat.id);
+    }
+    const queue = feed.map((item) => ({ ...item, startedAt: turns?.get(item.id) || item.startedAt }));
+    const slots = assignSectors(queue);
+    const active = slots.filter(Boolean);
+    spotlight.hidden = active.length === 0;
+    screen.classList.toggle("playing", active.length > 0);
+    arena.seats.forEach((seat, index) => {
+      setSeat(seat, slots[index]);
+      if (!seat.id) return;
+      const remaining = Math.max(0, seat.deadline - performance.now());
+      seat.progress.value = remaining / 1000;
+      seat.seconds.value = `${Math.ceil(remaining / 1000)} s`;
+    });
+    const reserved = queue.filter((item) => item.experience === 1 && item.startedAt &&
+      Number(item.createdAt || 0) >= clearAt && timeLeft(item) > 0).length;
+    if (Math.max(active.length, reserved) < playerLimit) {
       tryStart(queue.find((item) => item.experience === 1 && !item.startedAt && Number(item.createdAt || 0) >= clearAt));
     }
+    const activeIds = new Set(active.map((item) => item.id));
     completed = queue.filter((item) => item.experience !== 1 || finished.has(item.id) ||
-      (item.id !== activeId && item.startedAt && timeLeft(item) === 0)).reverse();
+      (!activeIds.has(item.id) && item.startedAt && timeLeft(item) === 0)).reverse();
     renderWall();
   }
 

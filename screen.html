@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Firma e Inspira · Pantalla LED</title>
-  <link rel="stylesheet" href="css/firma-inspira.css?v=mando">
+  <link rel="stylesheet" href="css/firma-inspira.css?v=arena">
 </head>
 <body data-page="screen">
   <main class="screen">
@@ -22,9 +22,9 @@
       <div class="wall-grid"></div>
       <div class="wall-grid"></div>
     </div>
-    <section id="spotlight" aria-label="Huella en juego" hidden>
-      <div id="stageMark"></div>
-      <div class="stage-timer"><progress id="timerBar" max="15" value="15"></progress><output id="seconds">15 s</output></div>
+    <section id="spotlight" aria-label="Arena de cuatro jugadores" hidden>
+      <div class="arena-grid" id="arenaGrid"></div>
+      <div class="arena-projectiles" id="arenaProjectiles" aria-hidden="true"></div>
     </section>
     <p id="status" role="status">Conectando…</p>
     <button id="adminHotspot" type="button" aria-label="Abrir ajustes de pantalla"></button>
@@ -49,6 +49,6 @@
     </dialog>
   </main>
   <script type="module" src="js/led-brand.js"></script>
-  <script type="module" src="app.js?v=mando"></script>
+  <script type="module" src="app.js?v=arena"></script>
 </body>
 </html>
