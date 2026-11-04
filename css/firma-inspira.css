@@ -241,10 +241,6 @@ body[data-page="screen"]::before { transform: none; }
   overflow: hidden;
   min-width: 0;
   min-height: 0;
-  padding: .25rem;
-  background: #070d24c4;
-  border: 1px solid #91bdf031;
-  border-radius: .65rem;
   container-type: size;
 }
 .wall-tile .mark {
@@ -254,6 +250,18 @@ body[data-page="screen"]::before { transform: none; }
   animation: wall-colors 8s ease-in-out infinite;
 }
 .wall-tile .mark-ink { width: min(100%, var(--signature-size)); }
+.wall-tile .mark-motion {
+  animation: wall-drift var(--drift-duration) ease-in-out var(--drift-phase) var(--drift-direction) infinite;
+}
+.wall-tile .mark-content { width: 66%; height: 64%; }
+.wall-tile .mark-content span { font-size: min(1em, calc(166cqw / var(--characters)), 17cqh); }
+.wall-tile .mark-ink { max-height: calc(var(--signature-size) * .58); }
+@keyframes wall-drift {
+  0%, 100% { translate: -14% -7%; }
+  25% { translate: -3% 15%; }
+  50% { translate: 14% 4%; }
+  75% { translate: 6% -15%; }
+}
 #spotlight {
   position: absolute;
   inset: 15% 24% 15%;
@@ -313,4 +321,5 @@ body[data-page="screen"]::before { transform: none; }
   .mark[data-moving="true"] .mark-motion { animation: none; translate: 8% 0; }
   .mark-content { transition: none; }
   .wall-tile .mark { animation-timing-function: steps(1); }
+  .wall-tile .mark-motion { animation: none; }
 }

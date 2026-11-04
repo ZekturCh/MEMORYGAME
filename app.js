@@ -404,14 +404,12 @@ function initScreen() {
   function renderWall(force = false) {
     const visible = completed.filter((item) => !suppressed.has(item.id) && Number(item.createdAt || 0) >= clearAt);
     const activeGrids = grids.filter((grid) => grid.clientWidth > 0 && grid.clientHeight > 0);
-    const capacities = activeGrids.map((grid) => {
+    const layouts = activeGrids.map((grid) => {
       const columns = Math.max(1, Math.min(8, Math.floor(grid.clientWidth / 155)));
       const rows = Math.max(1, Math.min(7, Math.floor(grid.clientHeight / 94)));
-      grid.style.setProperty("--cols", columns);
-      grid.style.setProperty("--rows", rows);
-      return columns * rows;
+      return { columns, rows, capacity: columns * rows };
     });
-    const capacity = capacities.reduce((sum, count) => sum + count, 0) || 1;
+    const capacity = layouts.reduce((sum, layout) => sum + layout.capacity, 0) || 1;
     const pages = Math.max(1, Math.ceil(visible.length / capacity));
     const newest = visible[0]?.id;
     if (newest !== newestVisibleId) {
@@ -424,25 +422,41 @@ function initScreen() {
     }
     wallPage %= pages;
     const page = visible.slice(wallPage * capacity, (wallPage + 1) * capacity);
-    const nextIds = JSON.stringify([capacities, page.map((item) => item.id)]);
+    const nextIds = JSON.stringify([layouts, page.map((item) => item.id)]);
     byId("emptyWall").hidden = visible.length > 0 || activeId !== null;
     screen.classList.toggle("has-marks", byId("emptyWall").hidden);
     if (!force && wallIds === nextIds) return;
     wallIds = nextIds;
     let index = 0;
     activeGrids.forEach((grid, gridIndex) => {
-      const tiles = page.slice(index, index + capacities[gridIndex]).flatMap((item) => {
+      const layout = layouts[gridIndex];
+      const remaining = page.length - index;
+      const otherCapacity = layouts.slice(gridIndex + 1).reduce((sum, next) => sum + next.capacity, 0);
+      const count = Math.min(layout.capacity, Math.max(
+        Math.ceil(remaining / (layouts.length - gridIndex)),
+        remaining - otherCapacity
+      ));
+      const columns = Math.min(layout.columns, count || 1, Math.max(1,
+        Math.ceil(count / layout.rows), Math.ceil(Math.sqrt(count * layout.columns / layout.rows))));
+      grid.style.setProperty("--cols", columns);
+      grid.style.setProperty("--rows", Math.max(1, Math.ceil(count / columns)));
+      const tiles = page.slice(index, index + count).flatMap((item) => {
         const mark = makeMark(item);
         if (!mark) return [];
         const elapsed = item.startedAt ? Math.max(0, serverNow() - item.startedAt - duration) : 0;
         mark.style.animationDelay = `-${elapsed % 8000}ms`;
         const tile = document.createElement("div");
         tile.className = "wall-tile";
+        const seed = item.id.charCodeAt(item.id.length - 1);
+        const drift = 9000 + (seed % 6) * 1100;
+        tile.style.setProperty("--drift-duration", `${drift}ms`);
+        tile.style.setProperty("--drift-phase", `-${(elapsed + seed * 173) % drift}ms`);
+        tile.style.setProperty("--drift-direction", seed % 2 ? "reverse" : "normal");
         tile.append(mark);
         return [tile];
       });
       grid.replaceChildren(...tiles);
-      index += capacities[gridIndex];
+      index += count;
     });
   }
 
