@@ -1,8 +1,8 @@
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
 import {
-  getDatabase, limitToLast, onValue, orderByChild, push, query, ref,
-  runTransaction, serverTimestamp, set
+  get, getDatabase, limitToLast, onValue, orderByChild, orderByKey, push, query, ref,
+  serverTimestamp, set
 } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-database.js";
 
 const db = getDatabase(initializeApp({
@@ -22,6 +22,11 @@ const room = (new URLSearchParams(location.search).get("room") || defaultRoom)
   .trim().replace(/[.#$/[\]\s\u0000-\u001f\u007f]+/g, "-").slice(0, 100) || defaultRoom;
 const roomPath = `led-wall/${room}`;
 const items = ref(db, `${roomPath}/items`);
+// Production allows creating whole records and rejects updates to existing ones.
+const turnsPath = `led-wall/~firma-start~${room}/items`;
+const effectsRef = (id) => ref(db, `led-wall/~firma-effects~${room}~${id}/items`);
+const turnRef = (id) => ref(db, `${turnsPath}/${id}`);
+const eventRecord = (text) => ({ type: "text", text, createdAt: serverTimestamp() });
 const duration = 15_000;
 const maxPathLength = 11_000;
 const initialControl = { color: "white", effect: "focus", moving: false, pop: 0 };
@@ -186,7 +191,7 @@ function initTablet() {
   }
 
   function play(itemRef, item) {
-    const controlRef = ref(db, `${roomPath}/items/${itemRef.key}/control`);
+    const controlRef = effectsRef(itemRef.key);
     const current = { item, controlRef, control: { ...initialControl }, stop: () => {} };
     session = current;
     const mark = makeMark(item);
@@ -197,9 +202,9 @@ function initTablet() {
     displayControl(session.control);
     show("playView");
     current.timer = setInterval(tick, 100);
-    current.stop = onValue(itemRef, (snapshot) => {
+    current.stop = onValue(turnRef(itemRef.key), (snapshot) => {
       if (session !== current || !snapshot.exists()) return;
-      current.item = snapshot.val();
+      current.item.startedAt = Number(snapshot.val().createdAt);
       if (!current.item.startedAt) return;
       byId("playTitle").textContent = "¡Juega con tu huella!";
       byId("playHint").textContent = "Prueba un color, un efecto o aprieta tu huella.";
@@ -213,7 +218,7 @@ function initTablet() {
     const current = session;
     current.control = { ...current.control, ...change };
     displayControl(current.control);
-    set(current.controlRef, current.control).catch(() => {
+    push(current.controlRef, { ...eventRecord("turn-effect"), control: current.control }).catch(() => {
       if (session === current) setStatus("El efecto no llegó a la pantalla. Vuelve a intentarlo.", true);
     });
   }
@@ -377,10 +382,13 @@ function initScreen() {
   const spotlight = byId("spotlight");
   const wallLimit = 80;
   let feed = [];
+  let turns = null;
   let connected = false;
   let requestingStart = false;
   let retryAt = 0;
   let activeId = null;
+  let stopEffects = () => {};
+  let activeControl;
   let newestVisibleId = null;
   let wallIds = "";
   let wallPage = 0;
@@ -438,20 +446,29 @@ function initScreen() {
     });
   }
 
-  function tryStart(item) {
-    if (!connected || !item || requestingStart || Date.now() < retryAt) return;
+  async function tryStart(item) {
+    if (!connected || !item || !turns || requestingStart || Date.now() < retryAt) return;
     requestingStart = true;
-    const started = ref(db, `${roomPath}/items/${item.id}/startedAt`);
-    runTransaction(started, (value) => value === null ? serverTimestamp() : undefined, { applyLocally: false })
-      .catch(() => {
+    const start = turnRef(item.id);
+    try {
+      await set(start, eventRecord("turn-start"));
+    } catch {
+      // Another screen may have created the same record first.
+      const existing = await get(start).catch(() => null);
+      if (existing?.exists()) {
+        turns.set(item.id, Number(existing.val().createdAt));
+      } else {
         retryAt = Date.now() + 3000;
         setStatus("No se pudo iniciar el turno. Reintentando…", true);
-      })
-      .finally(() => { requestingStart = false; });
+      }
+    } finally {
+      requestingStart = false;
+    }
   }
 
   function tick() {
-    const active = feed.find((item) => item.experience === 1 && item.startedAt &&
+    const queue = feed.map((item) => ({ ...item, startedAt: turns?.get(item.id) || item.startedAt }));
+    const active = queue.find((item) => item.experience === 1 && item.startedAt &&
       Number(item.createdAt || 0) >= clearAt && timeLeft(item) > 0);
     if ((active?.id || null) !== activeId) {
       activeId = active?.id || null;
@@ -459,14 +476,22 @@ function initScreen() {
       stage.replaceChildren(...(mark ? [mark] : []));
       spotlight.hidden = !active;
       screen.classList.toggle("playing", Boolean(active));
+      stopEffects();
+      activeControl = active?.control;
+      if (active) {
+        stopEffects = onValue(query(effectsRef(active.id), orderByKey(), limitToLast(1)), (snapshot) => {
+          if (activeId !== active.id) return;
+          snapshot.forEach((child) => { activeControl = child.val()?.control; });
+        });
+      }
     }
     if (active) {
       updateTimer(timeLeft(active));
-      applyControl(stage.firstElementChild, active.control);
+      applyControl(stage.firstElementChild, activeControl);
     } else {
-      tryStart(feed.find((item) => item.experience === 1 && !item.startedAt && Number(item.createdAt || 0) >= clearAt));
+      tryStart(queue.find((item) => item.experience === 1 && !item.startedAt && Number(item.createdAt || 0) >= clearAt));
     }
-    completed = feed.filter((item) => item.experience !== 1 || (item.startedAt && timeLeft(item) === 0)).reverse();
+    completed = queue.filter((item) => item.experience !== 1 || (item.startedAt && timeLeft(item) === 0)).reverse();
     renderWall();
   }
 
@@ -482,6 +507,12 @@ function initScreen() {
     if (connected) setStatus("En vivo");
     tick();
   }, () => setStatus("Sin acceso al muro.", true));
+  onValue(query(ref(db, turnsPath), orderByKey(), limitToLast(wallLimit)), (snapshot) => {
+    turns = new Map();
+    snapshot.forEach((child) => { turns.set(child.key, Number(child.val().createdAt)); });
+    if (connected) setStatus("En vivo");
+    tick();
+  }, () => setStatus("Sin acceso a los turnos.", true));
   onValue(ref(db, ".info/connected"), (snapshot) => {
     connected = snapshot.val() === true;
     setStatus(connected ? "En vivo" : "Sin conexión. Reconectando…", !connected);
