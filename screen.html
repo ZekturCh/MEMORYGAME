@@ -4,17 +4,20 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Firma e Inspira · Pantalla LED</title>
-  <link rel="stylesheet" href="css/firma-inspira.css">
+  <link rel="stylesheet" href="css/firma-inspira.css?v=led-video">
 </head>
 <body data-page="screen">
   <main class="screen">
+    <video class="screen-video" src="video.mp4?v=firma-inspira" autoplay muted loop playsinline aria-hidden="true"></video>
     <header class="screen-header">
-      <div class="brand" aria-label="Credicorp, IA, Data y Ciberseguridad Summit 2026">
-        <b>CREDICORP</b><span>IA, Data &amp; Ciberseguridad</span><strong>SUMMIT 2026</strong>
+      <h1><img class="screen-light" src="assets/firma-inspira/titulo-led.svg" alt="Firma e Inspira"></h1>
+      <div class="screen-brand">
+        <img class="screen-wordmark screen-light" src="assets/firma-inspira/credicorp.svg" alt="Credicorp">
+        <img class="screen-tagline screen-light" src="assets/firma-inspira/credicorp-tagline.svg" alt="IA, Data y Ciberseguridad">
+        <div class="screen-summit" role="img" aria-label="SUMMIT 2026"></div>
       </div>
-      <h1>Firma e Inspira</h1>
     </header>
-    <p id="emptyWall">Tu huella empieza aquí</p>
+    <p id="emptyWall"><img class="screen-light" src="assets/firma-inspira/huella-led.svg" alt="Tu huella empieza aquí"></p>
     <div id="wall" aria-label="Muro de huellas">
       <div class="wall-grid"></div>
       <div class="wall-grid"></div>
@@ -45,6 +48,7 @@
       <div id="adminList" aria-label="Huellas del muro"></div>
     </dialog>
   </main>
-  <script type="module" src="app.js"></script>
+  <script type="module" src="js/led-brand.js"></script>
+  <script type="module" src="app.js?v=led-video"></script>
 </body>
 </html>

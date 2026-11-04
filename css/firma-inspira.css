@@ -158,10 +158,78 @@ output { min-width: 3ch; }
   position: relative;
   isolation: isolate;
 }
-.screen-header { position: absolute; z-index: 1; inset: 3% 4% auto; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: .6rem; pointer-events: none; }
-.screen-header .brand { justify-self: start; }
-.screen h1 { font-size: clamp(1.25rem, 4.2vmin, 3.3rem); text-shadow: 0 0 1rem #020317; }
-#emptyWall { position: absolute; inset: 0; display: grid; place-items: center; font-size: clamp(1.3rem, 4.2vmin, 3.3rem); font-weight: 800; text-shadow: 0 0 1rem #010317; pointer-events: none; }
+body[data-page="screen"]::before { transform: none; }
+.screen-video {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(var(--background-x, 1), var(--background-y, 1));
+  pointer-events: none;
+}
+.screen::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(ellipse at center, #030416a0, #03041632 72%);
+  pointer-events: none;
+}
+.screen-header { position: absolute; z-index: 1; inset: 0; pointer-events: none; }
+.screen-header h1 {
+  position: absolute;
+  top: 5%;
+  left: 50%;
+  translate: -50% 0;
+  width: clamp(165px, 27vmin, 370px);
+}
+.screen-header img, #emptyWall img { display: block; width: 100%; }
+.screen-brand {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  translate: -50% -50%;
+  display: grid;
+  justify-items: center;
+  gap: .55vmin;
+  width: min(56vw, 60vmin, 690px);
+  transition: top .65s ease, width .65s ease;
+}
+.screen-brand .screen-wordmark { width: 51%; margin-bottom: .6vmin; }
+.screen-brand .screen-tagline { width: 87%; }
+.screen-summit {
+  width: 100%;
+  aspect-ratio: 516 / 58;
+  background: linear-gradient(108deg, var(--summit-1), var(--summit-2), var(--summit-3));
+  mask: url("../assets/firma-inspira/summit-2026.svg") center / contain no-repeat;
+  transition: --summit-1 1.5s, --summit-2 1.5s, --summit-3 1.5s;
+}
+@property --summit-1 { syntax: "<color>"; inherits: false; initial-value: #ff39b4; }
+@property --summit-2 { syntax: "<color>"; inherits: false; initial-value: #36f4e0; }
+@property --summit-3 { syntax: "<color>"; inherits: false; initial-value: #ffffff; }
+.screen.has-marks .screen-brand { top: 7.5%; width: min(34vw, 26vmin, 310px); gap: .15vmin; }
+.screen.has-marks .screen-header h1 { left: 4%; translate: none; width: min(24vw, 20vmin, 250px); }
+#emptyWall {
+  position: absolute;
+  z-index: 1;
+  top: 66%;
+  left: 50%;
+  translate: -50% 0;
+  width: min(65vw, 42vmin, 470px);
+  pointer-events: none;
+}
+.screen-light { animation: moving-shadow 9s ease-in-out infinite; }
+.screen-tagline { animation-delay: -.8s; }
+#emptyWall .screen-light { animation-delay: -1.5s; }
+@keyframes moving-shadow {
+  0%, 100% { filter: drop-shadow(0 2px 4px #010217) drop-shadow(-14px 7px 8px #06012700); }
+  20% { filter: drop-shadow(0 2px 4px #010217) drop-shadow(-12px 7px 8px #000b2cde); }
+  52% { filter: drop-shadow(0 2px 4px #010217) drop-shadow(0 9px 11px #07021fea); }
+  84% { filter: drop-shadow(0 2px 4px #010217) drop-shadow(14px 7px 8px #20042ddb); }
+  98% { filter: drop-shadow(0 2px 4px #010217) drop-shadow(15px 7px 8px #20042d00); }
+}
 #wall { position: absolute; inset: 16% 4% 8%; display: grid; grid-template-columns: minmax(0, 1fr); }
 .wall-grid { min-width: 0; min-height: 0; display: grid; grid-template-columns: repeat(var(--cols, 1), minmax(0, 1fr)); grid-template-rows: repeat(var(--rows, 1), minmax(0, 1fr)); gap: .6rem; }
 .wall-grid:nth-child(2) { display: none; }
@@ -233,13 +301,15 @@ output { min-width: 3ch; }
 #adminList { display: grid; gap: .35rem; margin-top: .75rem; max-height: 30vh; overflow: auto; }
 .admin-row { padding: .35rem; background: #161e37; overflow-wrap: anywhere; }
 @media (max-aspect-ratio: 1/1) {
-  .screen-header { display: flex; flex-direction: column; }
+  .screen.has-marks .screen-brand { width: min(43vw, 220px); }
   #wall { inset-block-start: 21%; }
   .screen.playing #wall { inset: 80% 4% 8%; grid-template-columns: minmax(0, 1fr); }
   .screen.playing .wall-grid:nth-child(2) { display: none; }
   #spotlight { inset: 22% 5%; }
 }
 @media (prefers-reduced-motion: reduce) {
+  .screen-light { animation: none; filter: drop-shadow(0 3px 6px #010217); }
+  .screen-brand, .screen-summit { transition: none; }
   .mark[data-moving="true"] .mark-motion { animation: none; translate: 8% 0; }
   .mark-content { transition: none; }
   .wall-tile .mark { animation-timing-function: steps(1); }

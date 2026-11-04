@@ -418,6 +418,7 @@ function initScreen() {
     const page = visible.slice(wallPage * capacity, (wallPage + 1) * capacity);
     const nextIds = JSON.stringify([capacities, page.map((item) => item.id)]);
     byId("emptyWall").hidden = visible.length > 0 || activeId !== null;
+    screen.classList.toggle("has-marks", byId("emptyWall").hidden);
     if (!force && wallIds === nextIds) return;
     wallIds = nextIds;
     let index = 0;
