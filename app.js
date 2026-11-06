@@ -25,9 +25,11 @@ const roomPath = `led-wall/${room}`;
 const items = ref(db, `${roomPath}/items`);
 // Production allows creating whole records and rejects updates to existing ones.
 const turnsPath = `led-wall/~firma-start~${room}/items`;
-const effectsRef = (id) => ref(db, `led-wall/~firma-effects~${room}~${id}/items`);
+const effectsPrefix = `~firma-effects~${room}~`;
+const effectsRef = (id) => ref(db, `led-wall/${effectsPrefix}${id}/items`);
 const turnRef = (id) => ref(db, `${turnsPath}/${id}`);
-const eventRecord = (text) => ({ type: "text", text, createdAt: serverTimestamp() });
+const resetRef = ref(db, `${roomPath}/reset`);
+const eventRecord = (text, wallItem) => ({ type: "text", text, createdAt: serverTimestamp(), wallRoom: room, wallItem });
 const duration = 15_000;
 const playerLimit = 4;
 const maxPathLength = 11_000;
@@ -40,6 +42,18 @@ onValue(ref(db, ".info/serverTimeOffset"), (snapshot) => {
 });
 
 const serverNow = () => Date.now() + serverOffset;
+
+function watchRoomReset(listener) {
+  let timer;
+  onValue(resetRef, (snapshot) => {
+    clearTimeout(timer);
+    const state = snapshot.val();
+    const cutoff = Number(state?.cutoff) || 0;
+    const remaining = Number(state?.until) - serverNow();
+    listener(remaining > 0, cutoff);
+    if (remaining > 0) timer = setTimeout(() => listener(false, cutoff), remaining + 50);
+  });
+}
 const timeLeft = (item) => Math.max(0, Math.min(duration, item.startedAt + duration - serverNow()));
 const clampAxis = (value) => Math.max(-1, Math.min(1, Number(value) || 0));
 const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
@@ -146,6 +160,9 @@ function initTablet() {
   let typing = false;
   let connected = false;
   let submitting = false;
+  let roomReady = false;
+  let resetting = false;
+  let generation = 0;
   let session = null;
   let resetTimer;
   const joystick = bindJoystick(byId("joystick"), (dx, dy) => {
@@ -163,7 +180,7 @@ function initTablet() {
   }
 
   function updateSend() {
-    send.disabled = submitting || !connected;
+    send.disabled = submitting || !connected || !roomReady || resetting;
     form.setAttribute("aria-busy", String(submitting));
   }
 
@@ -215,7 +232,7 @@ function initTablet() {
 
   function play(itemRef, item) {
     const controlRef = effectsRef(itemRef.key);
-    const current = { item, controlRef, control: { ...initialControl }, stop: () => {} };
+    const current = { item, controlRef, id: itemRef.key, control: { ...initialControl }, stop: () => {} };
     session = current;
     const mark = makeMark(item);
     preview.replaceChildren(...(mark ? [mark] : []));
@@ -244,7 +261,7 @@ function initTablet() {
     current.pendingWrite = null;
     if (session !== current || !connected || performance.now() >= current.deadline) return;
     current.lastWrite = performance.now();
-    push(current.controlRef, { ...eventRecord("turn-effect"), control: current.control }).catch(() => {
+    push(current.controlRef, { ...eventRecord("turn-effect", current.id), control: current.control }).catch(() => {
       if (session === current) setStatus("El mando perdió conexión. Vuelve a intentarlo.", true);
     });
   }
@@ -262,7 +279,7 @@ function initTablet() {
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
-    if (submitting || !connected) return;
+    if (send.disabled) return;
     const text = message.value.trim().replace(/\s+/g, " ");
     const signature = ink.path();
     if (typing ? !text : !signature) {
@@ -280,7 +297,8 @@ function initTablet() {
         signatureAspect: pad.clientWidth / pad.clientHeight
       }),
       createdAt: serverTimestamp(),
-      experience: 1
+      experience: 1,
+      wallGeneration: generation
     };
     submitting = true;
     updateSend();
@@ -288,13 +306,16 @@ function initTablet() {
     const itemRef = push(items);
     try {
       await set(itemRef, item);
+      if (resetting || generation !== item.wallGeneration) return;
       message.value = "";
       ink.clear();
       toggleInput(false);
       play(itemRef, item);
       setStatus("");
     } catch {
-      setStatus("No se pudo enviar. Tu huella sigue en la tablet.", true);
+      if (!resetting && generation === item.wallGeneration) {
+        setStatus("No se pudo enviar. Tu huella sigue en la tablet.", true);
+      }
     } finally {
       submitting = false;
       updateSend();
@@ -335,11 +356,26 @@ function initTablet() {
     changeControl({ launch: { at, ...(session.aim || { x: 0, y: 0 }) } });
   });
   document.addEventListener("visibilitychange", tick);
+  watchRoomReset((blocked, cutoff) => {
+    const clear = blocked || (roomReady && cutoff !== generation);
+    roomReady = true;
+    generation = cutoff;
+    resetting = blocked;
+    if (clear) {
+      if (session) stopSession();
+      message.value = "";
+      ink.clear();
+      toggleInput(false);
+      reset();
+    }
+    updateSend();
+    if (connected) setStatus(blocked ? "La sala se está limpiando…" : "");
+  });
   onValue(ref(db, ".info/connected"), (snapshot) => {
     connected = snapshot.val() === true;
     if (!connected) joystick.stop();
     updateSend();
-    setStatus(connected ? "" : "Sin conexión con la pantalla. Reconectando…", !connected);
+    setStatus(connected ? (resetting ? "La sala se está limpiando…" : "") : "Sin conexión con la pantalla. Reconectando…", !connected);
   });
 }
 
@@ -520,6 +556,8 @@ function initScreen() {
   let pageChangedAt = Date.now();
   let completed = [];
   let clearAt = 0;
+  let roomReady = false;
+  let resetting = false;
   const suppressed = new Set();
 
   function itemLabel(item) {
@@ -527,7 +565,7 @@ function initScreen() {
   }
 
   function renderWall(force = false) {
-    const visible = completed.filter((item) => !suppressed.has(item.id) && Number(item.createdAt || 0) >= clearAt);
+    const visible = resetting ? [] : completed.filter((item) => !suppressed.has(item.id) && Number(item.createdAt || 0) >= clearAt);
     const activeGrids = grids.filter((grid) => grid.clientWidth > 0 && grid.clientHeight > 0);
     const layouts = activeGrids.map((grid) => {
       const columns = Math.max(1, Math.min(8, Math.floor(grid.clientWidth / 155)));
@@ -586,17 +624,17 @@ function initScreen() {
   }
 
   async function tryStart(item) {
-    if (!connected || !item || !turns || requestingStart || Date.now() < retryAt) return;
+    if (!connected || !roomReady || resetting || !item || !turns || requestingStart || Date.now() < retryAt) return;
     requestingStart = true;
     const start = turnRef(item.id);
     try {
-      await set(start, eventRecord("turn-start"));
+      await set(start, eventRecord("turn-start", item.id));
     } catch {
       // Another screen may have created the same record first.
       const existing = await get(start).catch(() => null);
       if (existing?.exists()) {
         turns.set(item.id, Number(existing.val().createdAt));
-      } else {
+      } else if (!resetting) {
         retryAt = Date.now() + 3000;
         setStatus("No se pudo iniciar el turno. Reintentando…", true);
       }
@@ -652,7 +690,7 @@ function initScreen() {
     for (const seat of arena.seats) {
       if (seat.id && performance.now() >= seat.deadline) finished.add(seat.id);
     }
-    const queue = feed.map((item) => ({ ...item, startedAt: turns?.get(item.id) || item.startedAt }));
+    const queue = resetting ? [] : feed.map((item) => ({ ...item, startedAt: turns?.get(item.id) || item.startedAt }));
     const slots = assignSectors(queue);
     const active = slots.filter(Boolean);
     spotlight.hidden = active.length === 0;
@@ -704,6 +742,13 @@ function initScreen() {
     const cutoff = Number(snapshot.val()) || 0;
     if (cutoff <= clearAt) return;
     clearAt = cutoff;
+    tick();
+  });
+  watchRoomReset((blocked, cutoff) => {
+    roomReady = true;
+    resetting = blocked;
+    clearAt = Math.max(clearAt, cutoff);
+    if (connected) setStatus(blocked ? "Limpiando la sala…" : "En vivo");
     tick();
   });
   new ResizeObserver(() => renderWall()).observe(screen);
@@ -793,6 +838,19 @@ function setupAdmin(wall) {
   byId("clearVisible").addEventListener("click", () => {
     wall.clear();
     renderList();
+  });
+  const purge = byId("purgeRoom");
+  purge.addEventListener("click", async () => {
+    purge.disabled = true;
+    const status = byId("purgeStatus");
+    try {
+      const { confirmRoomPurge } = await import("./js/firma-admin.js");
+      if (await confirmRoomPurge({ db, room, effectsPrefix, resetRef, serverNow, status })) renderList();
+    } catch (error) {
+      status.textContent = error.message;
+    } finally {
+      purge.disabled = false;
+    }
   });
   byId("resetSettings").addEventListener("click", () => {
     settings = { ...defaults };
