@@ -37,7 +37,19 @@ button {
 button:focus-visible, textarea:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
 button:disabled { opacity: .5; cursor: wait; }
 button[aria-pressed="true"] { border-color: var(--cyan); background: #16324d; }
-button[data-color] { color: var(--swatch, white); }
+button[data-color] {
+  width: 48px;
+  height: 48px;
+  padding: 4px;
+  border: 2px solid #ffffff80;
+  border-radius: .7rem;
+  background: var(--swatch, white) content-box;
+}
+button[data-color][aria-pressed="true"] {
+  border-color: white;
+  box-shadow: 0 0 0 2px #09091d, 0 0 0 4px white;
+}
+button[data-color]:focus-visible { outline-offset: 6px; }
 [data-color="pink"] { --swatch: var(--pink); }
 [data-color="cyan"] { --swatch: var(--cyan); }
 [data-color="yellow"] { --swatch: var(--yellow); }
