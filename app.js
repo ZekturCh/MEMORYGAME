@@ -1,6 +1,6 @@
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
-import { createArena } from "./js/firma-arena.js?v=mapa";
+import { createArena } from "./js/firma-arena.js?v=muro-continuo";
 import {
   get, getDatabase, limitToLast, onValue, orderByChild, orderByKey, push, query, ref,
   serverTimestamp, set
@@ -543,17 +543,13 @@ function createPad(canvas, hint) {
 function initScreen() {
   const screen = document.querySelector(".screen");
   const arena = createArena(byId("wall"), playerLimit, makeMark);
-  const wallLimit = 80;
   let feed = [];
   let turns = null;
   let connected = false;
   let requestingStart = false;
   let retryAt = 0;
   const finished = new Set();
-  let newestVisibleId = null;
   let slots = [];
-  let wallPage = 0;
-  let pageChangedAt = Date.now();
   let completed = [];
   let clearAt = 0;
   let roomReady = false;
@@ -566,21 +562,9 @@ function initScreen() {
 
   function renderWall() {
     const visible = resetting ? [] : completed.filter((item) => !suppressed.has(item.id) && Number(item.createdAt || 0) >= clearAt);
-    const capacity = arena.capacity();
-    const pages = Math.max(1, Math.ceil(visible.length / capacity));
-    const newest = visible[0]?.id;
-    if (newest !== newestVisibleId) {
-      newestVisibleId = newest;
-      wallPage = 0;
-      pageChangedAt = Date.now();
-    } else if (Date.now() - pageChangedAt >= 10_000) {
-      wallPage = (wallPage + 1) % pages;
-      pageChangedAt = Date.now();
-    }
-    wallPage %= pages;
     byId("emptyWall").hidden = visible.length > 0 || slots.some(Boolean);
     screen.classList.toggle("has-marks", byId("emptyWall").hidden);
-    arena.sync(slots, visible.slice(wallPage * capacity, (wallPage + 1) * capacity));
+    arena.sync(slots, visible);
   }
 
   async function tryStart(item) {
@@ -671,7 +655,7 @@ function initScreen() {
 
   }
 
-  onValue(query(items, orderByChild("createdAt"), limitToLast(wallLimit)), (snapshot) => {
+  onValue(query(items, orderByChild("createdAt")), (snapshot) => {
     const next = [];
     snapshot.forEach((child) => {
       const item = child.val();
@@ -685,7 +669,7 @@ function initScreen() {
     if (connected) setStatus("En vivo");
     tick();
   }, () => setStatus("Sin acceso al muro.", true));
-  onValue(query(ref(db, turnsPath), orderByKey(), limitToLast(wallLimit)), (snapshot) => {
+  onValue(query(ref(db, turnsPath), orderByKey()), (snapshot) => {
     turns = new Map();
     snapshot.forEach((child) => { turns.set(child.key, Number(child.val().createdAt)); });
     if (connected) setStatus("En vivo");
@@ -715,6 +699,10 @@ function initScreen() {
   window.addEventListener("pageshow", tick);
 
   setupAdmin({
+    setSizes(settings) {
+      arena.setSizes(settings);
+      renderWall();
+    },
     list: () => completed.filter((item) => !suppressed.has(item.id) && Number(item.createdAt || 0) >= clearAt),
     itemLabel,
     remove(id) {
@@ -750,6 +738,7 @@ function setupAdmin(wall) {
     style.setProperty("--screen-bg", settings.bgColor);
     style.setProperty("--text-size", `${settings.textSize}px`);
     style.setProperty("--signature-size", `${settings.signatureSize}px`);
+    wall.setSizes(settings);
   }
 
   function save() {

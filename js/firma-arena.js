@@ -6,65 +6,150 @@ const gap = 7;
 export function createArena(map, count, makeMark) {
   const seats = Array.from({ length: count }, () => ({}));
   const bodies = new Map();
+  const context = document.createElement("canvas").getContext("2d");
   let layout = {};
+  let sizes = { textSize: 42, signatureSize: 260 };
+  let settingsChanged = true;
+  const setSizes = (next) => {
+    if (sizes.textSize === next.textSize && sizes.signatureSize === next.signatureSize) return;
+    sizes = { textSize: next.textSize, signatureSize: next.signatureSize };
+    settingsChanged = true;
+  };
 
-  function measure() {
-    const { clientWidth: width, clientHeight: height } = map;
-    const columns = clamp(Math.floor(width / 180), 2, 7);
-    const rows = clamp(Math.floor(height / 110), 2, 5);
-    const cellWidth = width / columns;
-    const cellHeight = height / rows;
-    return { width, height, columns, rows, cellWidth, cellHeight,
-      w: Math.min(245, cellWidth * .78), h: Math.min(142, cellHeight * .76) };
-  }
-
-  function spawn(body, occupied) {
-    const { columns, rows, cellWidth, cellHeight, w, h } = layout;
-    const positions = Array.from({ length: columns * rows }, (_, index) => ({
-      x: (index % columns + .5) * cellWidth,
-      y: (Math.floor(index / columns) + .5) * cellHeight
-    }));
-    const centerDistance = ({ x, y }) => Math.hypot(x - layout.width / 2, y - layout.height / 2);
-    positions.sort((a, b) => centerDistance(a) - centerDistance(b));
-    const free = positions.find(({ x, y }) => occupied.every((other) =>
-      Math.abs(x - other.x) >= w + gap || Math.abs(y - other.y) >= h + gap));
-    if (!free) return false;
-    Object.assign(body, free);
-    body.origin = free;
-    return true;
-  }
-
-  function placeBodies() {
-    const ordered = [...bodies.values()].sort((a, b) => Number(Boolean(b.seat)) - Number(Boolean(a.seat)));
-    const placed = ordered.filter((body) => body.placed);
-    for (const body of ordered) {
-      if (body.placed) continue;
-      body.placed = spawn(body, placed);
-      if (!body.placed && body.seat) {
-        // A moving crowd can cover all spawn points. Repack before admitting a player.
-        for (const other of ordered) other.placed = false;
-        placed.length = 0;
-        for (const other of ordered) {
-          other.placed = spawn(other, placed);
-          if (other.placed) placed.push(other);
-        }
-        break;
-      }
-      if (body.placed) placed.push(body);
+  function measure(body, width, height) {
+    const boost = body.seat ? 1.25 : 1;
+    if (body.ink) {
+      const { width: inkWidth, height: inkHeight } = body.ink.viewBox.baseVal;
+      const max = sizes.signatureSize * boost;
+      const ratio = Math.min(max / Math.max(inkWidth, inkHeight), width * .55 / inkWidth, height * .55 / inkHeight);
+      return { contentWidth: inkWidth * ratio, contentHeight: inkHeight * ratio };
     }
-    for (const body of ordered) body.node.hidden = !body.placed;
+    const font = sizes.textSize * boost;
+    context.font = `850 ${font}px Arial, Helvetica, sans-serif`;
+    const textWidth = Math.max(1, context.measureText(body.text).width);
+    const fit = Math.min(1, width * .65 / textWidth);
+    return { contentWidth: textWidth * fit, contentHeight: font * 1.14 * fit, font: font * fit };
+  }
+
+  function footprint(body, size, scale) {
+    // Reserve room for the stroke and the temporary squeeze animation on active turns.
+    const reserve = body.seat ? 1.25 : 1;
+    return {
+      ...size,
+      scale,
+      w: size.contentWidth * scale * reserve + (body.ink ? 6 : 2),
+      h: size.contentHeight * scale * reserve + (body.seat ? 15 : body.ink ? 6 : 2)
+    };
+  }
+
+  function pack(entries, scale, width, height) {
+    const sized = entries.map(([body, size]) => [body, footprint(body, size, scale)])
+      .sort((a, b) => b[1].h - a[1].h);
+    const widest = sized.reduce((max, [, size]) => Math.max(max, size.w), 0);
+    const rowWidth = Math.max(widest, width * .94);
+    if (rowWidth > width) return null;
+    let x = 0;
+    let y = 0;
+    let rowHeight = 0;
+    let row = [];
+    const placements = new Map();
+    function centerRow() {
+      const offset = (width - x + gap) / 2;
+      for (const position of row) position.x += offset;
+      row = [];
+    }
+    for (const [body, size] of sized) {
+      if (x + size.w > rowWidth) {
+        centerRow();
+        x = 0;
+        y += rowHeight + gap;
+        rowHeight = 0;
+      }
+      if (y + size.h > height) return null;
+      const position = { ...size, x: x + size.w / 2, y: y + size.h / 2 };
+      placements.set(body, position);
+      row.push(position);
+      rowHeight = Math.max(rowHeight, size.h);
+      x += size.w + gap;
+    }
+    centerRow();
+    const offsetY = Math.max(0, (height - y - rowHeight) / 2);
+    for (const position of placements.values()) {
+      position.y += offsetY;
+    }
+    return placements;
+  }
+
+  function placeBodies(force) {
+    const { width, height } = layout;
+    const entries = [...bodies.values()].map((body) => [body, measure(body, width, height)]);
+    const plans = [1, .85, .7, .55, .45, .35, .26, .18, .12, .08, .04, .015];
+    let placements;
+    for (const scale of plans) {
+      placements = pack(entries, scale, width, height);
+      if (placements) break;
+    }
+    if (!placements) return;
+    const occupied = [];
+    const pending = [];
+    for (const [body, size] of placements) {
+      const fits = body.placed && body.x >= size.w / 2 && body.x <= width - size.w / 2 &&
+        body.y >= size.h / 2 && body.y <= height - size.h / 2;
+      if (fits) occupied.push([body, size]);
+      else pending.push([body, size]);
+    }
+    const overlaps = (x, y, size, others) => others.some(([other, bounds]) =>
+      Math.abs(x - other.x) < (size.w + bounds.w) / 2 + gap &&
+      Math.abs(y - other.y) < (size.h + bounds.h) / 2 + gap);
+    let repack = force || occupied.some(([body, size], index) =>
+      overlaps(body.x, body.y, size, occupied.slice(index + 1)));
+    if (!repack) {
+      const freeSpots = [...placements.values()];
+      for (const [body, size] of pending) {
+        const free = freeSpots.find(({ x, y }) =>
+          x >= size.w / 2 && x <= width - size.w / 2 && y >= size.h / 2 && y <= height - size.h / 2 &&
+          !overlaps(x, y, size, occupied));
+        if (!free) {
+          repack = true;
+          break;
+        }
+        body.x = free.x;
+        body.y = free.y;
+        body.origin = { x: body.x, y: body.y };
+        occupied.push([body, size]);
+      }
+    }
+    for (const [body, size] of placements) {
+      if (repack) {
+        body.x = size.x;
+        body.y = size.y;
+        body.origin = { x: body.x, y: body.y };
+      }
+      body.placed = true;
+      body.w = size.w;
+      body.h = size.h;
+      body.node.style.width = `${size.w}px`;
+      body.node.style.height = `${size.h}px`;
+      body.node.style.transform = `translate(${body.x - size.w / 2}px, ${body.y - size.h / 2}px)`;
+      body.mark.style.width = `${size.contentWidth * size.scale}px`;
+      body.mark.style.height = `${size.contentHeight * size.scale}px`;
+      if (size.font) body.mark.style.fontSize = `${size.font * size.scale}px`;
+      body.node.hidden = false;
+    }
   }
 
   function sync(active, wall) {
-    const next = measure();
+    const next = { width: map.clientWidth, height: map.clientHeight };
     const resized = next.width !== layout.width || next.height !== layout.height;
     layout = next;
+    let changed = resized || settingsChanged;
     const wanted = new Map(active.flatMap((item, index) => item ? [[item.id, { item, seat: seats[index] }]] : []));
     for (const item of wall) wanted.set(item.id, { item });
     for (const [id, body] of bodies) {
       if (wanted.has(id)) continue;
       body.node.remove();
       bodies.delete(id);
+      changed = true;
     }
     for (const [id, { item, seat }] of wanted) {
       let body = bodies.get(id);
@@ -78,15 +163,14 @@ export function createArena(map, count, makeMark) {
         node.append(mark, timer);
         map.append(node);
         const angle = Math.random() * Math.PI * 2;
-        body = { node, mark, timer, vx: Math.cos(angle) * 62, vy: Math.sin(angle) * 62, color: 0, launchedUntil: 0 };
+        body = { node, mark, timer, ink: mark.querySelector("svg"), text: mark.textContent,
+          vx: Math.cos(angle) * 62, vy: Math.sin(angle) * 62, color: 0, launchedUntil: 0 };
+        node.hidden = true;
         bodies.set(id, body);
-      }
-      if (resized) body.placed = false;
-      if (resized || !body.node.style.width) {
-        body.node.style.width = `${layout.w}px`;
-        body.node.style.height = `${layout.h}px`;
+        changed = true;
       }
       if (body.seat !== seat) {
+        changed = true;
         body.launchedUntil = 0;
         body.target = null;
         body.mark.style.removeProperty("--ink");
@@ -97,7 +181,10 @@ export function createArena(map, count, makeMark) {
       body.node.classList.toggle("map-active", Boolean(seat));
       if (seat) seat.body = body;
     }
-    if (next.width && next.height && [...bodies.values()].some((body) => !body.placed)) placeBodies();
+    if (changed && next.width && next.height) {
+      placeBodies(resized);
+      settingsChanged = false;
+    }
   }
 
   function steer(body, control) {
@@ -141,9 +228,10 @@ export function createArena(map, count, makeMark) {
   function move(body, axis, velocity, delta, placed, now) {
     if (!delta) return;
     const horizontal = axis === "x";
-    const size = horizontal ? layout.w : layout.h;
+    const size = horizontal ? body.w : body.h;
     const cross = horizontal ? "y" : "x";
-    const crossSize = horizontal ? layout.h : layout.w;
+    const alongSize = horizontal ? "w" : "h";
+    const crossSize = horizontal ? "h" : "w";
     const extent = horizontal ? layout.width : layout.height;
     const from = body[axis];
     const direction = Math.sign(delta);
@@ -151,10 +239,10 @@ export function createArena(map, count, makeMark) {
     let position = target;
     let contact;
     for (const other of placed) {
-      if (other === body || Math.abs(body[cross] - other[cross]) >= crossSize + gap) continue;
+      if (other === body || Math.abs(body[cross] - other[cross]) >= (body[crossSize] + other[crossSize]) / 2 + gap) continue;
       const distance = (other[axis] - from) * direction;
       if (distance <= 0) continue;
-      const limit = Math.max(0, distance - size - gap);
+      const limit = Math.max(0, distance - (size + other[alongSize]) / 2 - gap);
       if (limit >= Math.abs(position - from)) continue;
       position = from + direction * limit;
       contact = other;
@@ -168,8 +256,9 @@ export function createArena(map, count, makeMark) {
     const dt = Math.min(.025, (now - previous) / 1000);
     previous = now;
     const placed = [...bodies.values()].filter((body) => body.placed);
-    const { w, h, width, height } = layout;
+    const { width, height } = layout;
     for (const body of placed) {
+      const { w, h } = body;
       if (body.seat && now >= body.launchedUntil) {
         if (body.target) {
           const anchor = body.target.centered ? { x: width / 2, y: height / 2 } : body.origin;
@@ -200,8 +289,5 @@ export function createArena(map, count, makeMark) {
     requestAnimationFrame(animate);
   }
   requestAnimationFrame(animate);
-  return { seats, sync, steer, launch, capacity: () => {
-    const { columns, rows } = measure();
-    return Math.max(1, Math.floor(columns * rows / 2));
-  } };
+  return { seats, sync, steer, launch, setSizes };
 }
