@@ -1,6 +1,6 @@
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
-import { createArena } from "./js/firma-arena.js";
+import { createArena } from "./js/firma-arena.js?v=mapa";
 import {
   get, getDatabase, limitToLast, onValue, orderByChild, orderByKey, push, query, ref,
   serverTimestamp, set
@@ -125,15 +125,17 @@ function makeMark(item) {
   return mark;
 }
 
-function applyControl(mark, control) {
+function applyControl(mark, control, preview = true) {
   if (!mark) return;
   control = control || initialControl;
   mark.style.setProperty("--ink", Object.hasOwn(colors, control.color) ? colors[control.color] : colors.white);
   const motion = mark.firstElementChild;
   const content = motion.firstElementChild;
-  mark.dataset.steered = "";
-  mark.style.setProperty("--steer-x", `${clampAxis(control.x) * 23}%`);
-  mark.style.setProperty("--steer-y", `${clampAxis(control.y) * 27}%`);
+  if (preview) {
+    mark.dataset.steered = "";
+    mark.style.setProperty("--steer-x", `${clampAxis(control.x) * 23}%`);
+    mark.style.setProperty("--steer-y", `${clampAxis(control.y) * 27}%`);
+  }
   for (const [name, effect] of Object.entries(pulseEffects)) {
     const stamp = Number(control.pulses?.[name]);
     if (!stamp || stamp <= Number(mark.dataset[name] || 0)) continue;
@@ -347,7 +349,7 @@ function initTablet() {
   });
   byId("centerMark").addEventListener("click", () => {
     joystick.stop();
-    changeControl({ x: 0, y: 0 });
+    changeControl({ x: 0, y: 0, centerAt: serverNow() });
   });
   byId("launchMark").addEventListener("click", () => {
     if (!session) return;
@@ -540,9 +542,7 @@ function createPad(canvas, hint) {
 
 function initScreen() {
   const screen = document.querySelector(".screen");
-  const grids = [...document.querySelectorAll(".wall-grid")];
-  const spotlight = byId("spotlight");
-  const arena = createArena(byId("arenaGrid"), byId("arenaProjectiles"), playerLimit);
+  const arena = createArena(byId("wall"), playerLimit, makeMark);
   const wallLimit = 80;
   let feed = [];
   let turns = null;
@@ -551,7 +551,7 @@ function initScreen() {
   let retryAt = 0;
   const finished = new Set();
   let newestVisibleId = null;
-  let wallIds = "";
+  let slots = [];
   let wallPage = 0;
   let pageChangedAt = Date.now();
   let completed = [];
@@ -564,15 +564,9 @@ function initScreen() {
     return item.type === "text" ? String(item.text || "").slice(0, 48) : "Firma o dibujo";
   }
 
-  function renderWall(force = false) {
+  function renderWall() {
     const visible = resetting ? [] : completed.filter((item) => !suppressed.has(item.id) && Number(item.createdAt || 0) >= clearAt);
-    const activeGrids = grids.filter((grid) => grid.clientWidth > 0 && grid.clientHeight > 0);
-    const layouts = activeGrids.map((grid) => {
-      const columns = Math.max(1, Math.min(8, Math.floor(grid.clientWidth / 155)));
-      const rows = Math.max(1, Math.min(7, Math.floor(grid.clientHeight / 94)));
-      return { columns, rows, capacity: columns * rows };
-    });
-    const capacity = layouts.reduce((sum, layout) => sum + layout.capacity, 0) || 1;
+    const capacity = arena.capacity();
     const pages = Math.max(1, Math.ceil(visible.length / capacity));
     const newest = visible[0]?.id;
     if (newest !== newestVisibleId) {
@@ -584,43 +578,9 @@ function initScreen() {
       pageChangedAt = Date.now();
     }
     wallPage %= pages;
-    const page = visible.slice(wallPage * capacity, (wallPage + 1) * capacity);
-    const nextIds = JSON.stringify([layouts, page.map((item) => item.id)]);
-    byId("emptyWall").hidden = visible.length > 0 || !spotlight.hidden;
+    byId("emptyWall").hidden = visible.length > 0 || slots.some(Boolean);
     screen.classList.toggle("has-marks", byId("emptyWall").hidden);
-    if (!force && wallIds === nextIds) return;
-    wallIds = nextIds;
-    let index = 0;
-    activeGrids.forEach((grid, gridIndex) => {
-      const layout = layouts[gridIndex];
-      const remaining = page.length - index;
-      const otherCapacity = layouts.slice(gridIndex + 1).reduce((sum, next) => sum + next.capacity, 0);
-      const count = Math.min(layout.capacity, Math.max(
-        Math.ceil(remaining / (layouts.length - gridIndex)),
-        remaining - otherCapacity
-      ));
-      const columns = Math.min(layout.columns, count || 1, Math.max(1,
-        Math.ceil(count / layout.rows), Math.ceil(Math.sqrt(count * layout.columns / layout.rows))));
-      grid.style.setProperty("--cols", columns);
-      grid.style.setProperty("--rows", Math.max(1, Math.ceil(count / columns)));
-      const tiles = page.slice(index, index + count).flatMap((item) => {
-        const mark = makeMark(item);
-        if (!mark) return [];
-        const elapsed = item.startedAt ? Math.max(0, serverNow() - item.startedAt - duration) : 0;
-        mark.style.animationDelay = `-${elapsed % 8000}ms`;
-        const tile = document.createElement("div");
-        tile.className = "wall-tile";
-        const seed = item.id.charCodeAt(item.id.length - 1);
-        const drift = 9000 + (seed % 6) * 1100;
-        tile.style.setProperty("--drift-duration", `${drift}ms`);
-        tile.style.setProperty("--drift-phase", `-${(elapsed + seed * 173) % drift}ms`);
-        tile.style.setProperty("--drift-direction", seed % 2 ? "reverse" : "normal");
-        tile.append(mark);
-        return [tile];
-      });
-      grid.replaceChildren(...tiles);
-      index += count;
-    });
+    arena.sync(slots, visible.slice(wallPage * capacity, (wallPage + 1) * capacity));
   }
 
   async function tryStart(item) {
@@ -646,22 +606,22 @@ function initScreen() {
   function setSeat(seat, item) {
     if (seat.id === item?.id) return;
     seat.stopEffects?.();
-    seat.cancelFlight?.();
     seat.id = item?.id;
     seat.deadline = item ? performance.now() + timeLeft(item) : 0;
     seat.lastLaunch = 0;
-    seat.timer.hidden = !item;
-    seat.idle.hidden = Boolean(item);
-    seat.panel.classList.toggle("occupied", Boolean(item));
-    const mark = item ? makeMark(item) : null;
-    seat.stage.replaceChildren(...(mark ? [mark] : []));
-    if (!item || !mark) return;
-    applyControl(mark);
+    const body = seat.body;
+    if (!item || !body) return;
+    applyControl(body.mark, null, false);
     seat.stopEffects = onValue(query(effectsRef(item.id), orderByKey(), limitToLast(1)), (snapshot) => {
       if (seat.id !== item.id || performance.now() >= seat.deadline) return;
       snapshot.forEach((child) => {
         const control = child.val()?.control;
-        applyControl(mark, control);
+        if (control?.color !== body.inputColor) {
+          body.inputColor = control?.color;
+          body.node.style.removeProperty("--collision-ink");
+        }
+        applyControl(body.mark, control, false);
+        arena.steer(body, control);
         const command = control?.launch;
         const at = Number(command?.at);
         if (at > seat.lastLaunch && serverNow() - at < 1100) {
@@ -691,26 +651,24 @@ function initScreen() {
       if (seat.id && performance.now() >= seat.deadline) finished.add(seat.id);
     }
     const queue = resetting ? [] : feed.map((item) => ({ ...item, startedAt: turns?.get(item.id) || item.startedAt }));
-    const slots = assignSectors(queue);
+    slots = assignSectors(queue);
     const active = slots.filter(Boolean);
-    spotlight.hidden = active.length === 0;
-    screen.classList.toggle("playing", active.length > 0);
+    const activeIds = new Set(active.map((item) => item.id));
+    completed = queue.filter((item) => item.experience !== 1 || finished.has(item.id) ||
+      (!activeIds.has(item.id) && item.startedAt && timeLeft(item) === 0)).reverse();
+    renderWall();
     arena.seats.forEach((seat, index) => {
       setSeat(seat, slots[index]);
-      if (!seat.id) return;
+      if (!seat.id || !seat.body) return;
       const remaining = Math.max(0, seat.deadline - performance.now());
-      seat.progress.value = remaining / 1000;
-      seat.seconds.value = `${Math.ceil(remaining / 1000)} s`;
+      seat.body.timer.value = `${Math.ceil(remaining / 1000)} s`;
     });
     const reserved = queue.filter((item) => item.experience === 1 && item.startedAt &&
       Number(item.createdAt || 0) >= clearAt && timeLeft(item) > 0).length;
     if (Math.max(active.length, reserved) < playerLimit) {
       tryStart(queue.find((item) => item.experience === 1 && !item.startedAt && Number(item.createdAt || 0) >= clearAt));
     }
-    const activeIds = new Set(active.map((item) => item.id));
-    completed = queue.filter((item) => item.experience !== 1 || finished.has(item.id) ||
-      (!activeIds.has(item.id) && item.startedAt && timeLeft(item) === 0)).reverse();
-    renderWall();
+
   }
 
   onValue(query(items, orderByChild("createdAt"), limitToLast(wallLimit)), (snapshot) => {

@@ -184,7 +184,7 @@ header p { margin-top: .45rem; }
 .effect-panel { max-width: 520px; }
 button[data-effect]:active { background: #16324d; border-color: var(--cyan); }
 #leaveQueue { justify-self: center; }
-.timer, .stage-timer { display: flex; align-items: center; justify-content: center; gap: .55rem; font-variant-numeric: tabular-nums; font-weight: 800; }
+.timer { display: flex; align-items: center; justify-content: center; gap: .55rem; font-variant-numeric: tabular-nums; font-weight: 800; }
 progress { width: min(100%, 14rem); height: .55rem; accent-color: var(--cyan); }
 output { min-width: 3ch; }
 .screen {
@@ -266,84 +266,38 @@ body[data-page="screen"]::before { transform: none; }
   84% { filter: drop-shadow(0 2px 4px #010217) drop-shadow(14px 7px 8px #20042ddb); }
   98% { filter: drop-shadow(0 2px 4px #010217) drop-shadow(15px 7px 8px #20042d00); }
 }
-#wall { position: absolute; inset: 16% 4% 8%; display: grid; grid-template-columns: minmax(0, 1fr); }
-.wall-grid { min-width: 0; min-height: 0; display: grid; grid-template-columns: repeat(var(--cols, 1), minmax(0, 1fr)); grid-template-rows: repeat(var(--rows, 1), minmax(0, 1fr)); gap: .6rem; }
-.wall-grid:nth-child(2) { display: none; }
-.screen.playing #wall { inset: 82% 4% 5%; }
-.wall-tile {
+#wall {
+  position: absolute;
+  inset: 15% 4% 9%;
+  overflow: hidden;
+  pointer-events: none;
+}
+.map-body {
+  position: absolute;
+  inset: 0 auto auto 0;
   display: grid;
   place-items: center;
-  overflow: hidden;
-  min-width: 0;
-  min-height: 0;
-  container-type: size;
 }
-.wall-tile .mark {
-  width: 100%;
-  height: 100%;
-  font-size: clamp(10px, min(15cqw, 27cqh), var(--text-size));
-  animation: wall-colors 8s ease-in-out infinite;
+.map-body .mark {
+  width: 79%;
+  height: 78%;
+  color: var(--collision-ink, var(--ink, white));
+  font-size: var(--text-size);
 }
-.wall-tile .mark-ink { width: min(100%, var(--signature-size)); }
-.wall-tile .mark-motion {
-  animation: wall-drift var(--drift-duration) ease-in-out var(--drift-phase) var(--drift-direction) infinite;
-}
-.wall-tile .mark-content { width: 66%; height: 64%; }
-.wall-tile .mark-content span { font-size: min(1em, calc(166cqw / var(--characters)), 17cqh); }
-.wall-tile .mark-ink { max-height: calc(var(--signature-size) * .58); }
-@keyframes wall-drift {
-  0%, 100% { translate: -14% -7%; }
-  25% { translate: -3% 15%; }
-  50% { translate: 14% 4%; }
-  75% { translate: 6% -15%; }
-}
-#spotlight {
+.map-body:not(.map-active) .mark { width: 70%; height: 65%; }
+.map-body:not(.map-active) .mark-ink { width: min(100%, var(--signature-size)); }
+.map-active .mark { font-size: clamp(1.25rem, 5vmin, 4rem); }
+.map-active .mark-ink path { stroke-width: 5; }
+.map-body .mark-content span { font-size: min(1em, calc(205cqw / var(--characters)), 22cqh); }
+.map-timer {
   position: absolute;
-  inset: 14% 4% 19%;
-}
-.arena-grid {
-  width: 100%;
-  height: 100%;
-  display: grid;
-  grid-template: repeat(2, minmax(0, 1fr)) / repeat(2, minmax(0, 1fr));
-  gap: clamp(4px, 1vmin, 12px);
-}
-.arena-sector {
-  position: relative;
-  display: grid;
-  place-items: center;
-  min-width: 0;
-  min-height: 0;
-  overflow: hidden;
-  border: 1px solid #a494ee45;
-  border-radius: clamp(.7rem, 2vw, 1.7rem);
-  background: #05091c68;
-}
-.arena-sector.occupied {
-  border-color: color-mix(in srgb, var(--sector-color) 68%, transparent);
-  background: radial-gradient(ellipse at center, #101a3baa, #05091cbd);
-  box-shadow: inset 0 0 22px #5aeaff1a;
-}
-.arena-sector-label {
-  position: absolute;
-  inset: 6% auto auto 5%;
-  font-size: clamp(.65rem, 1.8vmin, 1rem);
-  color: var(--sector-color);
+  inset: auto 0 0;
+  text-align: center;
+  color: white;
+  font-size: clamp(.6rem, 1.5vmin, .9rem);
   font-weight: 800;
+  text-shadow: 0 1px 5px black;
 }
-.arena-idle { color: #d2d6e9b3; font-size: clamp(.75rem, 2vmin, 1.2rem); }
-.arena-mark {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-}
-.arena-mark .mark { width: 58%; height: 56%; font-size: clamp(1.1rem, 7vmin, 5.5rem); }
-.arena-mark .mark.in-flight { visibility: hidden; }
-.stage-timer { position: absolute; inset: auto 10% 5%; font-size: clamp(.62rem, 1.65vmin, 1rem); }
-.arena-projectiles { position: absolute; z-index: 2; inset: 0; pointer-events: none; }
-.arena-projectile { position: absolute; inset: 0 auto auto 0; filter: drop-shadow(0 0 10px #55eeff); }
-.arena-projectile .mark { width: 100%; height: 100%; }
 .mark {
   color: var(--ink, white);
   min-width: 0;
@@ -362,9 +316,8 @@ body[data-page="screen"]::before { transform: none; }
 .mark-motion { transition: translate .3s; }
 .mark[data-steered] .mark-motion { translate: var(--steer-x, 0%) var(--steer-y, 0%); transition-duration: 85ms; transition-timing-function: linear; }
 .mark-ink { display: block; width: 100%; height: 100%; min-height: 0; overflow: visible; }
+.preview .mark-ink path { stroke-width: 5; }
 .mark-ink path { fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
-.arena-mark .mark-ink path, .arena-projectile .mark-ink path, .preview .mark-ink path { stroke-width: 5; }
-@keyframes wall-colors { 0%, 16%, 100% { color: white; } 36%, 49% { color: var(--yellow); } 70%, 82% { color: var(--green); } }
 .screen #status { position: absolute; right: 1rem; bottom: .45rem; padding: .2rem .5rem; border-radius: .35rem; background: #050818a8; }
 #adminHotspot { position: absolute; bottom: 0; left: 0; width: 62px; height: 62px; opacity: 0; }
 #adminHotspot:focus-visible { opacity: 1; }
@@ -378,13 +331,9 @@ body[data-page="screen"]::before { transform: none; }
 @media (max-aspect-ratio: 1/1) {
   .screen.has-marks .screen-brand { width: min(43vw, 220px); }
   #wall { inset-block-start: 21%; }
-  .screen.playing #wall { inset: 83% 4% 8%; }
-  #spotlight { inset: 15% 4% 19%; }
 }
 @media (prefers-reduced-motion: reduce) {
   .screen-light { animation: none; filter: drop-shadow(0 3px 6px #010217); }
   .screen-brand, .screen-summit { transition: none; }
   .mark[data-steered] .mark-motion { transition: none; }
-  .wall-tile .mark { animation-timing-function: steps(1); }
-  .wall-tile .mark-motion { animation: none; }
 }
