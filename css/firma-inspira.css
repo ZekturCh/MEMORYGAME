@@ -194,7 +194,7 @@ output { min-width: 3ch; }
   position: relative;
   isolation: isolate;
 }
-body[data-page="screen"]::before { transform: none; }
+body[data-page="screen"]::before { content: none; }
 .screen-video {
   position: absolute;
   inset: 0;
