@@ -562,8 +562,6 @@ function initScreen() {
 
   function renderWall() {
     const visible = resetting ? [] : completed.filter((item) => !suppressed.has(item.id) && Number(item.createdAt || 0) >= clearAt);
-    byId("emptyWall").hidden = visible.length > 0 || slots.some(Boolean);
-    screen.classList.toggle("has-marks", byId("emptyWall").hidden);
     arena.sync(slots, visible);
   }
 
