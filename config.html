@@ -21,8 +21,9 @@
         <label>Estirar horizontal <input data-setting="videoStretchX" type="range" min="80" max="130"></label>
         <label>Estirar vertical <input data-setting="videoStretchY" type="range" min="80" max="130"></label>
         <label>Color de fondo <input data-setting="bgColor" type="color"></label>
-        <label>TamaÃ±o del texto en el muro <input data-setting="textSize" type="range" min="18" max="82"></label>
-        <label>TamaÃ±o de las firmas en el muro <input data-setting="signatureSize" type="range" min="45" max="720"></label>
+        <label>Tamaño del texto en el muro <input data-setting="textSize" type="range" min="18" max="82"></label>
+        <label>Tamaño de las firmas en el muro <input data-setting="signatureSize" type="range" min="45" max="720"></label>
+        <label>Máximo de huellas visibles <input data-setting="maxVisible" type="number" min="4" max="150" step="1" value="40"></label>
       </div>
       <div class="control-group">
         <button id="clearVisible" type="button">Limpiar muro en las pantallas</button>
@@ -34,6 +35,6 @@
     </section>
     <p id="status" role="status">Conectando…</p>
   </main>
-  <script type="module" src="app.js?v=config"></script>
+  <script type="module" src="app.js?v=limite-huellas"></script>
 </body>
 </html>

@@ -551,6 +551,7 @@ function initScreen() {
   let retryAt = 0;
   const finished = new Set();
   let slots = [];
+  let maxVisible = 40;
   let completed = [];
   let clearAt = 0;
   let roomReady = false;
@@ -562,7 +563,10 @@ function initScreen() {
   }
 
   function renderWall() {
-    const visible = resetting ? [] : completed.filter((item) => !suppressed.has(item.id) && Number(item.createdAt || 0) >= clearAt);
+    const available = Math.max(0, maxVisible - slots.filter(Boolean).length);
+    const visible = resetting ? [] : completed
+      .filter((item) => !suppressed.has(item.id) && Number(item.createdAt || 0) >= clearAt)
+      .slice(0, available);
     arena.sync(slots, visible);
   }
 
@@ -699,6 +703,7 @@ function initScreen() {
 
   setupAdmin({
     setSizes(settings) {
+      maxVisible = settings.maxVisible;
       arena.setSizes(settings);
       renderWall();
     },
@@ -749,7 +754,7 @@ function setupAdmin(wall) {
   const settingsKey = "ledScreenSettings";
   const defaults = {
     videoScale: 100, videoStretchX: 100, videoStretchY: 100,
-    bgColor: "#050619", textSize: 42, signatureSize: 260
+    bgColor: "#050619", textSize: 42, signatureSize: 260, maxVisible: 40
   };
   let settings = { ...defaults };
   try {
@@ -799,6 +804,7 @@ function setupAdmin(wall) {
     const key = input.dataset.setting;
     input.value = settings[key];
     input.addEventListener("input", () => {
+      if (input.type !== "color" && (!input.value || !input.validity.valid)) return;
       settings[key] = input.type === "color" ? input.value : Number(input.value);
       apply();
       save();
