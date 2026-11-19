@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Control de pantalla LED</title>
+  <link rel="stylesheet" href="css/firma-inspira.css?v=config">
+  <style>
+    .config-page { max-width: 760px; margin: auto; padding: 24px 16px; }
+    .config-page h1 { font-size: 1.7rem; margin-bottom: 20px; }
+    #adminPanel { width: 100%; max-height: none; padding: 18px; background: #080f25eb; border-radius: 16px; }
+  </style>
+</head>
+<body data-page="config">
+  <main class="config-page">
+    <h1>Control de pantalla LED</h1>
+    <button id="adminHotspot" type="button" style="position:static;width:auto;height:auto;opacity:1">Abrir control</button>
+    <section id="adminPanel" hidden>
+      <div class="admin-settings">
+        <label>Escala del fondo <input data-setting="videoScale" type="range" min="70" max="115"></label>
+        <label>Estirar horizontal <input data-setting="videoStretchX" type="range" min="80" max="130"></label>
+        <label>Estirar vertical <input data-setting="videoStretchY" type="range" min="80" max="130"></label>
+        <label>Color de fondo <input data-setting="bgColor" type="color"></label>
+        <label>TamaÃ±o del texto en el muro <input data-setting="textSize" type="range" min="18" max="82"></label>
+        <label>TamaÃ±o de las firmas en el muro <input data-setting="signatureSize" type="range" min="45" max="720"></label>
+      </div>
+      <div class="control-group">
+        <button id="clearVisible" type="button">Limpiar muro en las pantallas</button>
+        <button id="purgeRoom" type="button">Borrar datos de la sala</button>
+        <button id="resetSettings" type="button">Restaurar ajustes</button>
+      </div>
+      <div id="purgeStatus" role="status"></div>
+      <div id="adminList" aria-label="Huellas del muro"></div>
+    </section>
+    <p id="status" role="status">Conectando…</p>
+  </main>
+  <script type="module" src="app.js?v=config"></script>
+</body>
+</html>

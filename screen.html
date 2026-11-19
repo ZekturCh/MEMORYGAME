@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Firma e Inspira · Pantalla LED</title>
+  <title>Firma e Inspira Â· Pantalla LED</title>
   <link rel="stylesheet" href="css/firma-inspira.css?v=solo-video">
 </head>
 <body data-page="screen">
   <main class="screen">
     <video class="screen-video" src="video.mp4?v=20261116" autoplay muted loop playsinline aria-hidden="true"></video>
     <div id="wall" aria-label="Mapa de huellas"></div>
-    <p id="status" role="status">Conectando…</p>
+    <p id="status" role="status">Conectandoâ€¦</p>
     <button id="adminHotspot" type="button" aria-label="Abrir ajustes de pantalla"></button>
     <dialog id="adminPanel">
       <form method="dialog" class="admin-head">
@@ -22,8 +22,8 @@
         <label>Estirar horizontal <input data-setting="videoStretchX" type="range" min="80" max="130"></label>
         <label>Estirar vertical <input data-setting="videoStretchY" type="range" min="80" max="130"></label>
         <label>Color de fondo <input data-setting="bgColor" type="color"></label>
-        <label>Tamaño del texto en el muro <input data-setting="textSize" type="range" min="18" max="82"></label>
-        <label>Tamaño de las firmas en el muro <input data-setting="signatureSize" type="range" min="45" max="720"></label>
+        <label>TamaÃ±o del texto en el muro <input data-setting="textSize" type="range" min="18" max="82"></label>
+        <label>TamaÃ±o de las firmas en el muro <input data-setting="signatureSize" type="range" min="45" max="720"></label>
       </div>
       <div class="control-group">
         <button id="clearVisible" type="button">Limpiar muro en esta pantalla</button>
@@ -34,6 +34,6 @@
       <div id="adminList" aria-label="Huellas del muro"></div>
     </dialog>
   </main>
-  <script type="module" src="app.js?v=rebotes"></script>
+  <script type="module" src="app.js?v=config"></script>
 </body>
 </html>

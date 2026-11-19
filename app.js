@@ -151,6 +151,7 @@ function applyControl(mark, control, preview = true) {
 
 if (document.body.dataset.page === "tablet") initTablet();
 if (document.body.dataset.page === "screen") initScreen();
+if (document.body.dataset.page === "config") initConfig();
 
 function initTablet() {
   const form = byId("submission");
@@ -190,7 +191,7 @@ function initTablet() {
     typing = next;
     pad.hidden = typing;
     byId("textPad").hidden = !typing;
-    byId("toggleInput").textContent = typing ? "✎ Volver al dibujo" : "⌨ Escribir con teclado";
+    byId("toggleInput").textContent = typing ? "âœŽ Volver al dibujo" : "âŒ¨ Escribir con teclado";
     if (typing) message.focus();
     ink.resize();
   }
@@ -207,7 +208,7 @@ function initTablet() {
   function finish() {
     stopSession();
     show("sentView");
-    setStatus(connected ? "" : "Sin conexión con la pantalla.", !connected);
+    setStatus(connected ? "" : "Sin conexiÃ³n con la pantalla.", !connected);
     byId("newMark").focus();
     resetTimer = setTimeout(reset, 7000);
   }
@@ -250,7 +251,7 @@ function initTablet() {
       current.item.startedAt = Number(snapshot.val().createdAt);
       if (!current.item.startedAt) return;
       current.deadline = performance.now() + timeLeft(current.item);
-      byId("playTitle").textContent = "¡Juega con tu huella!";
+      byId("playTitle").textContent = "Â¡Juega con tu huella!";
       byId("playHint").textContent = "Apunta con el joystick, lanza tu huella o combina efectos.";
       byId("leaveQueue").hidden = true;
       byId("playControls").hidden = false;
@@ -264,7 +265,7 @@ function initTablet() {
     if (session !== current || !connected || performance.now() >= current.deadline) return;
     current.lastWrite = performance.now();
     push(current.controlRef, { ...eventRecord("turn-effect", current.id), control: current.control }).catch(() => {
-      if (session === current) setStatus("El mando perdió conexión. Vuelve a intentarlo.", true);
+      if (session === current) setStatus("El mando perdiÃ³ conexiÃ³n. Vuelve a intentarlo.", true);
     });
   }
 
@@ -289,7 +290,7 @@ function initTablet() {
       return;
     }
     if (!typing && signature.length > maxPathLength) {
-      setStatus("El dibujo es demasiado largo. Bórralo y prueba con menos trazos.", true);
+      setStatus("El dibujo es demasiado largo. BÃ³rralo y prueba con menos trazos.", true);
       return;
     }
     const item = {
@@ -304,7 +305,7 @@ function initTablet() {
     };
     submitting = true;
     updateSend();
-    setStatus("Enviando…");
+    setStatus("Enviandoâ€¦");
     const itemRef = push(items);
     try {
       await set(itemRef, item);
@@ -371,13 +372,13 @@ function initTablet() {
       reset();
     }
     updateSend();
-    if (connected) setStatus(blocked ? "La sala se está limpiando…" : "");
+    if (connected) setStatus(blocked ? "La sala se estÃ¡ limpiandoâ€¦" : "");
   });
   onValue(ref(db, ".info/connected"), (snapshot) => {
     connected = snapshot.val() === true;
     if (!connected) joystick.stop();
     updateSend();
-    setStatus(connected ? (resetting ? "La sala se está limpiando…" : "") : "Sin conexión con la pantalla. Reconectando…", !connected);
+    setStatus(connected ? (resetting ? "La sala se estÃ¡ limpiandoâ€¦" : "") : "Sin conexiÃ³n con la pantalla. Reconectandoâ€¦", !connected);
   });
 }
 
@@ -578,7 +579,7 @@ function initScreen() {
         turns.set(item.id, Number(existing.val().createdAt));
       } else if (!resetting) {
         retryAt = Date.now() + 3000;
-        setStatus("No se pudo iniciar el turno. Reintentando…", true);
+        setStatus("No se pudo iniciar el turno. Reintentandoâ€¦", true);
       }
     } finally {
       requestingStart = false;
@@ -675,7 +676,7 @@ function initScreen() {
   }, () => setStatus("Sin acceso a los turnos.", true));
   onValue(ref(db, ".info/connected"), (snapshot) => {
     connected = snapshot.val() === true;
-    setStatus(connected ? "En vivo" : "Sin conexión. Reconectando…", !connected);
+    setStatus(connected ? "En vivo" : "Sin conexiÃ³n. Reconectandoâ€¦", !connected);
     tick();
   });
   onValue(ref(db, `${roomPath}/clear`), (snapshot) => {
@@ -688,7 +689,7 @@ function initScreen() {
     roomReady = true;
     resetting = blocked;
     clearAt = Math.max(clearAt, cutoff);
-    if (connected) setStatus(blocked ? "Limpiando la sala…" : "En vivo");
+    if (connected) setStatus(blocked ? "Limpiando la salaâ€¦" : "En vivo");
     tick();
   });
   new ResizeObserver(() => renderWall()).observe(screen);
@@ -707,15 +708,44 @@ function initScreen() {
       suppressed.add(id);
       renderWall();
     },
-    clear() {
+    clear(at = serverNow()) {
+      clearAt = Math.max(clearAt, at);
       for (const item of completed) suppressed.add(item.id);
       renderWall();
     }
   });
 }
 
+function initConfig() {
+  let feed = [];
+  const hidden = new Set();
+  let cutoff = 0;
+  const controller = setupAdmin({
+    setSizes() {},
+    list: () => feed.filter((item) => !hidden.has(item.id) && Number(item.createdAt) > cutoff),
+    itemLabel: (item) => item.type === "text" ? item.text : "Firma o dibujo",
+    remove(id) { hidden.add(id); },
+    clear(at = serverNow()) { cutoff = Math.max(cutoff, at); }
+  });
+  onValue(query(items, orderByChild("createdAt")), (snapshot) => {
+    feed = [];
+    snapshot.forEach((child) => feed.push({ ...child.val(), id: child.key }));
+    controller.refresh();
+  });
+  onValue(ref(db, ".info/connected"), (snapshot) => {
+    setStatus(snapshot.val() ? `Control de la sala ${room}` : "Reconectando…", !snapshot.val());
+  });
+}
+
 function setupAdmin(wall) {
   const panel = byId("adminPanel");
+  const configEvents = ref(db, `led-wall/~firma-config~${room}/items`);
+  const seenCommands = new Set();
+  let pendingSettings;
+  function sendCommand(command) {
+    return push(configEvents, { type: "text", text: "screen-control", createdAt: serverTimestamp(), command })
+      .catch(() => setStatus("No se pudo enviar el ajuste a la pantalla.", true));
+  }
   const settingsKey = "ledScreenSettings";
   const defaults = {
     videoScale: 100, videoStretchX: 100, videoStretchY: 100,
@@ -757,8 +787,7 @@ function setupAdmin(wall) {
       button.type = "button";
       button.textContent = "Borrar";
       button.addEventListener("click", () => {
-        wall.remove(item.id);
-        renderList();
+        sendCommand({ remove: item.id });
       });
       row.append(label, button);
       return row;
@@ -773,16 +802,19 @@ function setupAdmin(wall) {
       settings[key] = input.type === "color" ? input.value : Number(input.value);
       apply();
       save();
+      clearTimeout(pendingSettings);
+      const nextSettings = { ...settings };
+      pendingSettings = setTimeout(() => sendCommand({ settings: nextSettings }), 120);
     });
   }
   byId("adminHotspot").addEventListener("click", () => {
-    if (prompt("Código de operador") !== "73") return;
+    if (prompt("CÃ³digo de operador") !== "73") return;
     renderList();
-    panel.showModal();
+    if (panel.showModal) panel.showModal();
+    else panel.hidden = false;
   });
   byId("clearVisible").addEventListener("click", () => {
-    wall.clear();
-    renderList();
+    sendCommand({ clear: serverNow() });
   });
   const purge = byId("purgeRoom");
   purge.addEventListener("click", async () => {
@@ -802,6 +834,35 @@ function setupAdmin(wall) {
     for (const input of inputs) input.value = settings[input.dataset.setting];
     apply();
     save();
+    sendCommand({ settings: { ...defaults } });
   });
+  onValue(query(configEvents, orderByChild("createdAt")), (snapshot) => {
+    let latestSettings;
+    snapshot.forEach((child) => {
+      const command = child.val()?.command;
+      if (!command) return;
+      if (command.settings) latestSettings = command.settings;
+      if (seenCommands.has(child.key)) return;
+      seenCommands.add(child.key);
+      if (typeof command.remove === "string") wall.remove(command.remove);
+      if (Number.isFinite(command.clear)) wall.clear(command.clear);
+    });
+    if (latestSettings) {
+      for (const input of inputs) {
+        const key = input.dataset.setting;
+        const value = latestSettings[key];
+        if (input.type === "color") {
+          if (/^#[a-f0-9]{6}$/i.test(value)) settings[key] = value;
+        } else if (Number.isFinite(value)) {
+          settings[key] = Math.max(Number(input.min), Math.min(Number(input.max), value));
+        }
+        input.value = settings[key];
+      }
+      apply();
+      save();
+    }
+    renderList();
+  }, () => setStatus("Sin acceso al control de la sala.", true));
   apply();
+  return { refresh: renderList };
 }
