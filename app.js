@@ -1,6 +1,6 @@
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-app.js";
-import { createArena } from "./js/firma-arena.js?v=muro-continuo";
+import { createArena } from "./js/firma-arena.js?v=rebotes";
 import {
   get, getDatabase, limitToLast, onValue, orderByChild, orderByKey, push, query, ref,
   serverTimestamp, set

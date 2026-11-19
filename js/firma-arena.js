@@ -175,6 +175,12 @@ export function createArena(map, count, makeMark) {
         body.target = null;
         body.mark.style.removeProperty("--ink");
         body.mark.firstElementChild.getAnimations({ subtree: true }).forEach((animation) => animation.cancel());
+        if (!seat) {
+          // A player can finish at rest. Give the released signature a full drift vector.
+          const angle = Math.PI / 6 + Math.random() * Math.PI / 3;
+          body.vx = Math.cos(angle) * 62 * (Math.random() < .5 ? -1 : 1);
+          body.vy = Math.sin(angle) * 62 * (Math.random() < .5 ? -1 : 1);
+        }
       }
       body.seat = seat;
       body.timer.hidden = !seat;
@@ -211,9 +217,14 @@ export function createArena(map, count, makeMark) {
   }
 
   function collide(body, other, axis, velocity, now) {
-    body[velocity] *= -.75;
     if (other) {
-      other[velocity] += -body[velocity] * .55;
+      const direction = Math.sign(other[axis] - body[axis]);
+      const approach = (body[velocity] - other[velocity]) * direction;
+      if (approach > 0) {
+        const impulse = approach * .9;
+        body[velocity] -= impulse * direction;
+        other[velocity] += impulse * direction;
+      }
       body.launchedUntil = Math.max(body.launchedUntil, now + 280);
       other.launchedUntil = Math.max(other.launchedUntil, now + 280);
       for (const hit of [body, other]) {
@@ -222,6 +233,8 @@ export function createArena(map, count, makeMark) {
         hit.color = (hit.color + 1) % palette.length;
         hit.node.style.setProperty("--collision-ink", palette[hit.color]);
       }
+    } else {
+      body[velocity] *= -1;
     }
   }
 
@@ -280,10 +293,9 @@ export function createArena(map, count, makeMark) {
           body.vx = 55;
         }
       }
-      if (!reducedMotion.matches || body.seat) {
-        move(body, "x", "vx", body.vx * dt, placed, now);
-        move(body, "y", "vy", body.vy * dt, placed, now);
-      }
+      const motionScale = reducedMotion.matches && !body.seat ? .35 : 1;
+      move(body, "x", "vx", body.vx * dt * motionScale, placed, now);
+      move(body, "y", "vy", body.vy * dt * motionScale, placed, now);
       body.node.style.transform = `translate(${body.x - w / 2}px, ${body.y - h / 2}px)`;
     }
     requestAnimationFrame(animate);
